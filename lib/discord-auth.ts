@@ -2,9 +2,11 @@ export function getDiscordAuthUrl(state: string) {
     const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID
     const redirectUri = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI
 
-    if (!clientId || !redirectUri) {
-        console.error('Missing Discord configuration:', { clientId: !!clientId, redirectUri: !!redirectUri })
-        throw new Error('Discord configuration is missing')
+    // Strict validation to prevent "undefined" string in URL
+    if (!clientId || clientId === 'undefined' || !redirectUri || redirectUri === 'undefined') {
+        const errorMsg = `Discord config error: clientId=${clientId}, redirectUri=${redirectUri}`
+        console.error(errorMsg)
+        throw new Error('Discord configuration is missing or invalid. Please check your .env.local file.')
     }
 
     const params = new URLSearchParams({
@@ -15,7 +17,8 @@ export function getDiscordAuthUrl(state: string) {
         state: state,
     })
 
-    return `https://discord.com/api/oauth2/authorize?${params.toString()}`
+    // Using the canonical URL provided by Discord Developer Portal
+    return `https://discord.com/oauth2/authorize?${params.toString()}`
 }
 
 export async function exchangeCodeForToken(code: string) {
