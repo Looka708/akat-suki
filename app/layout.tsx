@@ -1,8 +1,14 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import CustomCursor from '@/components/CustomCursor'
 import BackgroundEffects from '@/components/BackgroundEffects'
 import { AuthProvider } from '@/components/AuthProvider'
+
+export const viewport: Viewport = {
+    themeColor: '#dc143c',
+    width: 'device-width',
+    initialScale: 1,
+}
 
 export const metadata: Metadata = {
     title: {
@@ -14,9 +20,31 @@ export const metadata: Metadata = {
     authors: [{ name: 'AKATSUKI Esports' }],
     creator: 'AKATSUKI Esports',
     publisher: 'AKATSUKI Esports',
-    themeColor: '#dc143c',
     icons: {
         icon: '/favicon.svg',
+    },
+    openGraph: {
+        type: 'website',
+        locale: 'en_US',
+        url: 'https://akat-suki.site',
+        siteName: 'AKATSUKI Esports',
+        title: 'AKATSUKI | Elite Professional Esports Organization',
+        description: 'Elite professional esports organization cultivating global talent and dominating high-performance competitive gaming.',
+        images: [
+            {
+                url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=1200&h=630',
+                width: 1200,
+                height: 630,
+                alt: 'AKATSUKI Esports Professional Gaming',
+            }
+        ],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'AKATSUKI | Elite Professional Esports Organization',
+        description: 'Elite professional esports organization cultivating global talent and dominating high-performance competitive gaming.',
+        images: ['https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=1200&h=630'],
+        creator: '@AkatsukiEsports',
     },
 }
 
