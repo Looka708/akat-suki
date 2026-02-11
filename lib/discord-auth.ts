@@ -1,11 +1,15 @@
-const CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID
-const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET
-const REDIRECT_URI = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI
-
 export function getDiscordAuthUrl(state: string) {
+    const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID
+    const redirectUri = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI
+
+    if (!clientId || !redirectUri) {
+        console.error('Missing Discord configuration:', { clientId: !!clientId, redirectUri: !!redirectUri })
+        throw new Error('Discord configuration is missing')
+    }
+
     const params = new URLSearchParams({
-        client_id: CLIENT_ID!,
-        redirect_uri: REDIRECT_URI!,
+        client_id: clientId,
+        redirect_uri: redirectUri,
         response_type: 'code',
         scope: 'identify email',
         state: state,
@@ -15,12 +19,20 @@ export function getDiscordAuthUrl(state: string) {
 }
 
 export async function exchangeCodeForToken(code: string) {
+    const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID
+    const clientSecret = process.env.DISCORD_CLIENT_SECRET
+    const redirectUri = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI
+
+    if (!clientId || !clientSecret || !redirectUri) {
+        throw new Error('Discord configuration is missing for token exchange')
+    }
+
     const params = new URLSearchParams({
-        client_id: CLIENT_ID!,
-        client_secret: CLIENT_SECRET!,
+        client_id: clientId,
+        client_secret: clientSecret,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: REDIRECT_URI!,
+        redirect_uri: redirectUri,
     })
 
     const response = await fetch('https://discord.com/api/oauth2/token', {
