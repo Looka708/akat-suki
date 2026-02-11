@@ -1,0 +1,23 @@
+{
+    "buildCommand": "npm run build",
+    "devCommand": "npm run dev",
+    "installCommand": "npm install",
+    "framework": "nextjs",
+    "regions": [
+        "iad1"
+    ],
+    "env": {
+        "NEXT_PUBLIC_DISCORD_CLIENT_ID": "@next_public_discord_client_id",
+        "DISCORD_CLIENT_SECRET": "@discord_client_secret",
+        "NEXT_PUBLIC_DISCORD_REDIRECT_URI": "@next_public_discord_redirect_uri",
+        "AUTH_SECRET": "@auth_secret",
+        "SESSION_MAX_AGE": "604800",
+        "NEXT_PUBLIC_APP_URL": "@next_public_app_url",
+        "ADMIN_USER_IDS": "@admin_user_ids",
+        "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
+        "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+        "DISCORD_WEBHOOK_URL": "@discord_webhook_url",
+        "LOOPS_API_KEY": "@loops_api_key"
+    }
+}
