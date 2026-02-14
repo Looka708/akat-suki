@@ -190,3 +190,136 @@ export async function sendAdminNotification(data: {
         ],
     })
 }
+
+// ============================================
+// Discord Role Management Functions
+// ============================================
+
+const DISCORD_API_BASE = 'https://discord.com/api/v10'
+
+export interface DiscordRole {
+    id: string
+    name: string
+    color: number
+    position: number
+    managed: boolean
+}
+
+export interface DiscordMember {
+    user: {
+        id: string
+        username: string
+        discriminator: string
+        avatar: string | null
+    }
+    roles: string[]
+    nick: string | null
+    joined_at: string
+}
+
+// Helper function for Discord API calls
+async function discordBotFetch(endpoint: string, options: RequestInit = {}) {
+    const botToken = process.env.DISCORD_BOT_TOKEN
+
+    if (!botToken) {
+        throw new Error('DISCORD_BOT_TOKEN is not configured in .env.local')
+    }
+
+    const response = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+            'Authorization': `Bot ${botToken}`,
+            'Content-Type': 'application/json',
+            ...options.headers,
+        },
+    })
+
+    if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Discord API error: ${response.status} - ${error}`)
+    }
+
+    // Some Discord API endpoints return 204 No Content
+    if (response.status === 204) {
+        return null
+    }
+
+    return response.json()
+}
+
+// Get all roles in the guild
+export async function getGuildRoles(guildId: string): Promise<DiscordRole[]> {
+    return discordBotFetch(`/guilds/${guildId}/roles`)
+}
+
+// Get a member by their Discord user ID
+export async function getGuildMember(guildId: string, userId: string): Promise<DiscordMember> {
+    return discordBotFetch(`/guilds/${guildId}/members/${userId}`)
+}
+
+// Add a role to a member
+export async function addMemberRole(
+    guildId: string,
+    userId: string,
+    roleId: string,
+    reason?: string
+): Promise<void> {
+    await discordBotFetch(
+        `/guilds/${guildId}/members/${userId}/roles/${roleId}`,
+        {
+            method: 'PUT',
+            headers: {
+                'X-Audit-Log-Reason': reason || 'Role assigned via AKATSUKI website',
+            },
+        }
+    )
+}
+
+// Remove a role from a member
+export async function removeMemberRole(
+    guildId: string,
+    userId: string,
+    roleId: string,
+    reason?: string
+): Promise<void> {
+    await discordBotFetch(
+        `/guilds/${guildId}/members/${userId}/roles/${roleId}`,
+        {
+            method: 'DELETE',
+            headers: {
+                'X-Audit-Log-Reason': reason || 'Role removed via AKATSUKI website',
+            },
+        }
+    )
+}
+
+// Auto-assign multiple roles to a member
+export async function autoAssignRoles(
+    guildId: string,
+    userId: string,
+    roleIds: string[],
+    reason?: string
+): Promise<{
+    success: boolean
+    assignedRoles: string[]
+    failedRoles: string[]
+}> {
+    const assignedRoles: string[] = []
+    const failedRoles: string[] = []
+
+    for (const roleId of roleIds) {
+        try {
+            await addMemberRole(guildId, userId, roleId, reason)
+            assignedRoles.push(roleId)
+        } catch (error) {
+            console.error(`Failed to assign role ${roleId}:`, error)
+            failedRoles.push(roleId)
+        }
+    }
+
+    return {
+        success: failedRoles.length === 0,
+        assignedRoles,
+        failedRoles,
+    }
+}
