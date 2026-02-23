@@ -136,18 +136,16 @@ export default function NewTournamentPage() {
                         <label className="block text-xs text-gray-400 uppercase tracking-widest mb-2">
                             Max Slots *
                         </label>
-                        <select
+                        <input
+                            type="number"
                             name="slots"
                             required
+                            min="2"
                             value={formData.slots}
                             onChange={handleChange}
-                            className="w-full bg-transparent border-b border-white/20 py-3 text-white focus:outline-none focus:border-[#dc143c] transition-colors text-sm appearance-none cursor-pointer"
-                        >
-                            <option value={8} className="bg-[#050505]">8 Teams</option>
-                            <option value={16} className="bg-[#050505]">16 Teams</option>
-                            <option value={32} className="bg-[#050505]">32 Teams</option>
-                            <option value={64} className="bg-[#050505]">64 Teams</option>
-                        </select>
+                            className="w-full bg-transparent border-b border-white/20 py-3 text-white focus:outline-none focus:border-[#dc143c] transition-colors placeholder-gray-600 text-sm"
+                            placeholder="e.g. 16"
+                        />
                     </div>
 
                     <div>
