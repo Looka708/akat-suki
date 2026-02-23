@@ -1,0 +1,113 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import { useAuth } from '@/components/AuthProvider'
+
+export default function InviteJoinPage() {
+    const { isAuthenticated, login } = useAuth()
+    const router = useRouter()
+    const params = useParams()
+
+    const inviteCode = params.code as string
+
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState(false)
+
+    const handleJoin = async () => {
+        if (!isAuthenticated) {
+            login()
+            return
+        }
+
+        setLoading(true)
+        setError(null)
+
+        try {
+            const res = await fetch('/api/tournament/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inviteCode }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to join team')
+            }
+
+            setSuccess(true)
+            setTimeout(() => {
+                router.push('/tournament/dashboard')
+            }, 2000)
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <main className="min-h-screen bg-black text-white selection:bg-red-500/30">
+            <Navbar />
+
+            <div className="pt-32 pb-20 px-6 mx-auto max-w-4xl min-h-[80vh] flex flex-col items-center justify-center">
+                <div className="w-full max-w-md relative">
+                    {/* Background effects */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-64 bg-red-600/10 blur-[100px] -z-10 rounded-full" />
+
+                    {!success ? (
+                        <div className="bg-zinc-900/50 border border-zinc-800 p-8 md:p-12 rounded-xl backdrop-blur-sm relative overflow-hidden text-center">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-900" />
+
+                            <h1 className="text-3xl font-rajdhani font-bold mb-4 uppercase tracking-wider text-white">
+                                You've Been Invited
+                            </h1>
+                            <p className="text-zinc-400 mb-8 font-inter">
+                                Join the team by accepting the invite!
+                            </p>
+
+                            {error && (
+                                <div className="p-4 mb-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm font-inter">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleJoin}
+                                disabled={loading}
+                                className="w-full px-8 py-4 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 text-white font-rajdhani font-bold tracking-wider uppercase transition-colors rounded-lg flex items-center justify-center"
+                            >
+                                {loading ? (
+                                    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                ) : !isAuthenticated ? (
+                                    <span>Login to Join</span>
+                                ) : (
+                                    <span>Accept Invite</span>
+                                )}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="bg-zinc-900/50 border border-zinc-800 p-8 md:p-12 rounded-xl backdrop-blur-sm text-center">
+                            <div className="w-20 h-20 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+
+                            <h2 className="text-2xl font-rajdhani font-bold mb-4 text-white">Joined Successfully!</h2>
+                            <p className="text-zinc-400 mb-8">
+                                Redirecting to team dashboard...
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <Footer />
+        </main>
+    )
+}

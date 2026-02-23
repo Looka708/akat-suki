@@ -17,7 +17,7 @@ interface AuthContextType {
     user: User | null
     isLoading: boolean
     isAuthenticated: boolean
-    login: () => void
+    login: (returnUrl?: string) => void
     logout: () => Promise<void>
     refreshUser: () => Promise<void>
 }
@@ -50,10 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    const login = () => {
-        // Store current path for redirect after login
+    const login = (returnUrl?: string) => {
+        // Store current path and params for redirect after login
         const currentPath = window.location.pathname
-        const returnTo = currentPath === '/' ? '/apply' : currentPath
+        const currentSearch = window.location.search
+        const fullPath = currentPath + currentSearch
+
+        // If returnUrl is explicitly provided, use it
+        // Otherwise, if on home page or the explicit request, redirect to apply for staff
+        const returnTo = returnUrl || (currentPath === '/' ? '/apply?position=Staff' : fullPath)
 
         // Redirect to Discord OAuth
         window.location.href = `/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`

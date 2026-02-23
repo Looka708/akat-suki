@@ -57,7 +57,7 @@ export function DiscordLoginButton({
 
     return (
         <button
-            onClick={login}
+            onClick={() => login()}
             className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
         >
             {showIcon && (

@@ -104,7 +104,7 @@ export default function JoinTeam() {
                     {positions.map((position, idx) => (
                         <Link
                             key={idx}
-                            href="/apply"
+                            href={`/apply?position=${encodeURIComponent(position.title === 'STAFF' ? 'Staff' : position.title === 'MODERATOR' ? 'Moderator' : position.title === 'CONTENT CREATOR' ? 'Content Creator' : 'Analyst')}`}
                             className="position-card group relative aspect-[3/4] overflow-hidden bg-black border border-white/10 rounded-sm hover:border-[#dc143c]/50 transition-all duration-500 cursor-pointer"
                         >
                             <div className={`absolute inset-0 bg-gradient-to-br ${position.color} opacity-20 group-hover:opacity-30 transition-opacity duration-700`}></div>

@@ -1,23 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { sendApplicationSubmittedNotification } from '@/lib/discord-notifications'
 import { useAuth } from '@/components/AuthProvider'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 
-export default function ApplyPage() {
+function ApplyForm() {
     const { user } = useAuth()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSubmitted, setIsSubmitted] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    const searchParams = useSearchParams()
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         discord: '',
-        position: '',
+        position: searchParams.get('position') || '',
         experience: '',
         why: '',
         availability: '',
@@ -313,4 +315,14 @@ export default function ApplyPage() {
     )
 }
 
-
+export default function ApplyPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-[#dc143c] border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
+            <ApplyForm />
+        </Suspense>
+    )
+}
