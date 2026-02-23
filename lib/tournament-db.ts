@@ -1,12 +1,29 @@
 import { supabaseAdmin } from './supabase-admin'
 
+export interface Tournament {
+    id: string
+    name: string
+    game: string
+    start_date: string
+    max_slots: number
+    entry_fee: number
+    prize_pool: number
+    status: string
+    top_twitch_channel: string | null
+    created_at: string
+}
+
 export interface TournamentTeam {
     id: string
+    tournament_id: string | null
     name: string
     captain_id: string
     invite_code: string
     discord_role_id: string | null
     discord_voice_channel_id: string | null
+    logo_url: string | null
+    region: string | null
+    payment_status: string
     created_at: string
 }
 
@@ -27,6 +44,89 @@ function generateInviteCode(): string {
     }
     return result
 }
+
+// ========================
+// TOURNAMENTS
+// ========================
+
+export async function createTournament(tournamentData: Partial<Tournament>) {
+    const { data, error } = await supabaseAdmin
+        .from('tournaments')
+        .insert({
+            ...tournamentData,
+            status: 'upcoming'
+        })
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error creating tournament:', error)
+        throw error
+    }
+    return data as Tournament
+}
+
+export async function getTournaments() {
+    const { data, error } = await supabaseAdmin
+        .from('tournaments')
+        .select('*')
+        .order('start_date', { ascending: true })
+
+    if (error) {
+        console.error('Error fetching tournaments:', error)
+        throw error
+    }
+    return data as Tournament[]
+}
+
+export async function getTournamentById(id: string) {
+    const { data, error } = await supabaseAdmin
+        .from('tournaments')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+    if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching tournament:', error)
+        throw error
+    }
+    return data as Tournament | null
+}
+
+export async function updateTournamentStatus(id: string, status: string) {
+    const { data, error } = await supabaseAdmin
+        .from('tournaments')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error updating tournament status:', error)
+        throw error
+    }
+    return data as Tournament
+}
+
+export async function getTournamentTeams(tournamentId: string) {
+    const { data, error } = await supabaseAdmin
+        .from('tournament_teams')
+        .select(`
+            *,
+            tournament_players (count)
+        `)
+        .eq('tournament_id', tournamentId)
+
+    if (error) {
+        console.error('Error fetching tournament teams:', error)
+        throw error
+    }
+    return data
+}
+
+// ========================
+// TEAMS
+// ========================
 
 export async function createTeam(name: string, captainId: string) {
     // Basic validation
@@ -61,7 +161,8 @@ export async function createTeam(name: string, captainId: string) {
         .insert({
             name: name.trim(),
             captain_id: captainId,
-            invite_code
+            invite_code,
+            tournament_id: null // We'll update this when they select a tournament
         })
         .select()
         .single()
