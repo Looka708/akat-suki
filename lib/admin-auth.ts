@@ -1,6 +1,8 @@
 import { getUserFromSession } from './session'
 import { ADMIN_ROLES, ROLE_PERMISSIONS, hasPermission, type AdminRole, type Permission } from './admin-roles'
 
+import { supabaseAdmin } from './supabase-admin'
+
 export interface AdminUser {
     id: string
     username: string
@@ -11,26 +13,30 @@ export interface AdminUser {
     permissions: Permission[]
 }
 
-// List of Discord user IDs with admin access (temporary solution)
-// In production, this should be stored in a database
+// List of Discord user IDs with admin access as a hardcoded fallback
 const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || '').split(',').filter(Boolean)
 
-// Determine admin role based on user ID
-// In production, fetch from database or Discord roles
-export function getAdminRole(userId: string): AdminRole | null {
+// Determine admin role based on database or fallback environment variable
+export async function getAdminRole(userId: string): Promise<AdminRole | null> {
+    // 1. Check database for role
+    const { data: userData, error } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single()
 
-    // For now, first user is super admin, others are regular admins
-    // Replace this with actual role checking logic
-    if (ADMIN_USER_IDS.length === 0) {
-        return null
+    if (!error && userData?.role && userData.role !== 'user') {
+        return userData.role as AdminRole
     }
 
-    if (userId === ADMIN_USER_IDS[0]) {
-        return ADMIN_ROLES.SUPER_ADMIN
-    }
-
-    if (ADMIN_USER_IDS.includes(userId)) {
-        return ADMIN_ROLES.ADMIN
+    // 2. Fallback to environment variables if database role is not set
+    if (ADMIN_USER_IDS.length > 0) {
+        if (userId === ADMIN_USER_IDS[0]) {
+            return ADMIN_ROLES.SUPER_ADMIN
+        }
+        if (ADMIN_USER_IDS.includes(userId)) {
+            return ADMIN_ROLES.ADMIN
+        }
     }
 
     return null
@@ -44,7 +50,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
         return null
     }
 
-    const role = getAdminRole(user.id)
+    const role = await getAdminRole(user.id)
 
     if (!role) {
         return null

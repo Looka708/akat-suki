@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.tournaments (
     max_slots INTEGER NOT NULL DEFAULT 16,
     entry_fee NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     prize_pool NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    currency TEXT NOT NULL DEFAULT 'USD',
     status TEXT NOT NULL DEFAULT 'upcoming', -- upcoming, registration_open, live, completed
     top_twitch_channel TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

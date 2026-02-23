@@ -15,7 +15,8 @@ export default function NewTournamentPage() {
         startDate: '',
         slots: 16,
         entryFee: 0,
-        prizePool: 0
+        prizePool: 0,
+        currency: 'USD'
     })
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -150,7 +151,25 @@ export default function NewTournamentPage() {
 
                     <div>
                         <label className="block text-xs text-gray-400 uppercase tracking-widest mb-2">
-                            Entry Fee (USD) *
+                            Currency *
+                        </label>
+                        <select
+                            name="currency"
+                            value={formData.currency}
+                            onChange={handleChange}
+                            className="w-full bg-transparent border-b border-white/20 py-3 text-white focus:outline-none focus:border-[#dc143c] transition-colors text-sm appearance-none cursor-pointer"
+                        >
+                            <option value="USD" className="bg-[#050505]">USD - US Dollar</option>
+                            <option value="PKR" className="bg-[#050505]">PKR - Pakistani Rupee</option>
+                            <option value="EUR" className="bg-[#050505]">EUR - Euro</option>
+                            <option value="GBP" className="bg-[#050505]">GBP - British Pound</option>
+                            <option value="INR" className="bg-[#050505]">INR - Indian Rupee</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs text-gray-400 uppercase tracking-widest mb-2">
+                            Entry Fee ({formData.currency}) *
                         </label>
                         <input
                             type="number"
@@ -167,7 +186,7 @@ export default function NewTournamentPage() {
 
                     <div className="col-span-1 md:col-span-2">
                         <label className="block text-xs text-gray-400 uppercase tracking-widest mb-2">
-                            Prize Pool (USD) *
+                            Prize Pool ({formData.currency}) *
                         </label>
                         <input
                             type="number"

@@ -8,6 +8,7 @@ export interface Tournament {
     max_slots: number
     entry_fee: number
     prize_pool: number
+    currency: string
     status: string
     top_twitch_channel: string | null
     created_at: string

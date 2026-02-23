@@ -5,6 +5,7 @@ import anime from 'animejs'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
+import { formatCurrency } from '@/lib/currency-utils'
 
 export default function Tournaments() {
     const sectionRef = useRef<HTMLElement>(null)
@@ -143,8 +144,10 @@ export default function Tournaments() {
                             </h3>
                             <div className="flex gap-8 items-center bg-black/60 p-4 backdrop-blur-md rounded-sm border border-white/5 inline-flex">
                                 <div>
-                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-mono"></p>
-                                    <p className="text-2xl font-rajdhani font-bold text-[#ffd700]">${tournament?.prize_pool?.toLocaleString() || ''}</p>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Prize Pool</p>
+                                    <p className="text-2xl font-rajdhani font-bold text-[#ffd700]">
+                                        {formatCurrency(tournament?.prize_pool || 0, tournament?.currency || 'USD')}
+                                    </p>
                                 </div>
                                 <div className="w-[1px] h-8 bg-white/20"></div>
                                 <div>

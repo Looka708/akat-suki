@@ -1,6 +1,7 @@
 import { requirePermission } from '@/lib/admin-auth'
 import { PERMISSIONS } from '@/lib/admin-roles'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { UserActions } from '@/components/admin/UserActions'
 
 export default async function UsersPage() {
     await requirePermission(PERMISSIONS.VIEW_USERS)
@@ -37,6 +38,7 @@ export default async function UsersPage() {
                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Role</th>
                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Status</th>
                             <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Last Active</th>
+                            <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
@@ -70,6 +72,11 @@ export default async function UsersPage() {
                                 </td>
                                 <td className="px-6 py-4 text-xs text-gray-500 font-mono">
                                     {user.last_active ? new Date(user.last_active).toLocaleString() : 'Never'}
+                                </td>
+                                <td className="px-6 py-4 text-xs text-gray-500 font-mono text-right">
+                                    <div className="flex justify-end">
+                                        <UserActions userId={user.id} currentRole={user.role} />
+                                    </div>
                                 </td>
                             </tr>
                         ))}

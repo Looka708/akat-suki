@@ -13,7 +13,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { name, game, startDate, slots, entryFee, prizePool } = body
+        const { name, game, startDate, slots, entryFee, prizePool, currency } = body
 
         if (!name || !startDate) {
             return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
             max_slots: Number(slots) || 16,
             entry_fee: Number(entryFee) || 0,
             prize_pool: Number(prizePool) || 0,
+            currency: currency || 'USD',
             status: 'upcoming'
         })
 

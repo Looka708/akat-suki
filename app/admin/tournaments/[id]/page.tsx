@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import BracketGenerator from '@/components/admin/BracketGenerator'
 import TournamentBracketManager from '@/components/admin/TournamentBracketManager'
+import { formatCurrency } from '@/lib/currency-utils'
 
 export default async function TournamentManagementPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -56,11 +57,11 @@ export default async function TournamentManagementPage({ params }: { params: Pro
                 </div>
                 <div className="bg-white/[0.02] border border-white/10 rounded-sm p-6">
                     <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Entry Fee</p>
-                    <p className="text-lg font-medium text-white">${tournament.entry_fee.toFixed(2)}</p>
+                    <p className="text-lg font-medium text-white">{formatCurrency(tournament.entry_fee, tournament.currency)}</p>
                 </div>
                 <div className="bg-white/[0.02] border border-white/10 rounded-sm p-6">
                     <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Prize Pool</p>
-                    <p className="text-lg font-medium text-[#dc143c]">${tournament.prize_pool.toFixed(2)}</p>
+                    <p className="text-lg font-medium text-[#dc143c]">{formatCurrency(tournament.prize_pool, tournament.currency)}</p>
                 </div>
             </div>
 
