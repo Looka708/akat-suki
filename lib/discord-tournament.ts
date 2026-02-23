@@ -2,7 +2,7 @@ import { addMemberRole } from './discord-notifications'
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10'
 
-async function discordBotFetch(endpoint: string, options: RequestInit = {}) {
+export async function discordBotFetch(endpoint: string, options: RequestInit = {}) {
     const botToken = process.env.DISCORD_BOT_TOKEN
 
     if (!botToken) {

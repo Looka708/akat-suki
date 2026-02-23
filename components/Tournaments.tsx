@@ -15,6 +15,36 @@ export default function Tournaments() {
     const [team, setTeam] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
+    const [tiltStyles, setTiltStyles] = useState<React.CSSProperties>({
+        transform: 'perspective(1500px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+        transition: 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)'
+    })
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!e.currentTarget) return
+        const rect = e.currentTarget.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+
+        const centerX = rect.width / 2
+        const centerY = rect.height / 2
+
+        const rotateX = ((y - centerY) / centerY) * -2 // Subtle 2 degree max tilt
+        const rotateY = ((x - centerX) / centerX) * 2
+
+        setTiltStyles({
+            transform: `perspective(1500px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
+            transition: 'transform 0.1s ease-out'
+        })
+    }
+
+    const handleMouseLeave = () => {
+        setTiltStyles({
+            transform: 'perspective(1500px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+            transition: 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)'
+        })
+    }
+
     // Fetch primary tournament and user's team
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -118,7 +148,12 @@ export default function Tournaments() {
                 </div>
 
                 {/* Single Tile Hero */}
-                <div className="tournament-hero relative w-full rounded-sm border border-white/10 overflow-hidden bg-zinc-900 group opacity-100 flex flex-col xl:flex-row min-h-[600px]">
+                <div
+                    className="tournament-hero relative w-full rounded-sm border border-white/10 overflow-hidden bg-zinc-900 group opacity-100 flex flex-col xl:flex-row min-h-[600px] shadow-2xl"
+                    style={tiltStyles}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                >
 
                     {/* Visual Side */}
                     <div className="relative w-full xl:w-1/2 min-h-[400px] xl:min-h-full">

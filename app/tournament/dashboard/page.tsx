@@ -236,21 +236,31 @@ function PlayerRow({ player, team }: { player: any, team: any }) {
             </div>
 
             {player.steam_id && dotaData?.matches && dotaData.matches.length > 0 && (
-                <div className="pt-3 border-t border-zinc-900 mt-1 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                    {dotaData.matches.slice(0, 5).map((match: any) => {
-                        const isWin = (match.player_slot < 128 && match.radiant_win) || (match.player_slot >= 128 && !match.radiant_win)
-                        return (
-                            <div
-                                key={match.match_id}
-                                className={`flex-shrink-0 px-2 py-1 rounded text-[9px] font-bold border ${isWin
-                                    ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                                    : 'bg-red-500/10 text-red-500 border-red-500/20'
-                                    }`}
-                            >
-                                {isWin ? 'W' : 'L'} • {match.kills}/{match.deaths}/{match.assists}
-                            </div>
-                        )
-                    })}
+                <div className="pt-3 border-t border-zinc-900 mt-1">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Recent Matches</span>
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-white">
+                            Win Rate <span className="text-[#dc143c]">
+                                {Math.round((dotaData.matches.filter((m: any) => (m.player_slot < 128 && m.radiant_win) || (m.player_slot >= 128 && !m.radiant_win)).length / dotaData.matches.length) * 100)}%
+                            </span>
+                        </span>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                        {dotaData.matches.slice(0, 5).map((match: any) => {
+                            const isWin = (match.player_slot < 128 && match.radiant_win) || (match.player_slot >= 128 && !match.radiant_win)
+                            return (
+                                <div
+                                    key={match.match_id}
+                                    className={`flex-shrink-0 px-2 py-1 rounded text-[9px] font-bold border ${isWin
+                                        ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                        : 'bg-red-500/10 text-red-500 border-red-500/20'
+                                        }`}
+                                >
+                                    {isWin ? 'W' : 'L'} • {match.kills}/{match.deaths}/{match.assists}
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
             )}
         </div>

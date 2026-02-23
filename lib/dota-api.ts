@@ -63,3 +63,37 @@ export async function getMatchDetails(matchId: string) {
     const data = await response.json()
     return data
 }
+
+/**
+ * Verifies if a specific team won a match by checking their Steam IDs against the match data.
+ */
+export async function verifyMatchOutcome(matchId: string, teamSteamIds: string[]): Promise<boolean> {
+    const data = await getMatchDetails(matchId)
+    if (!data || !data.players) {
+        throw new Error('Match details not found or invalid')
+    }
+
+    const teamAccountIds = teamSteamIds.map(toAccountId32)
+
+    let radiantCount = 0
+    let direCount = 0
+
+    data.players.forEach((player: any) => {
+        if (player.account_id && teamAccountIds.includes(player.account_id.toString())) {
+            if (player.player_slot < 128) {
+                radiantCount++
+            } else {
+                direCount++
+            }
+        }
+    })
+
+    if (radiantCount === 0 && direCount === 0) {
+        throw new Error('None of the team members were found in this match')
+    }
+
+    const isTeamRadiant = radiantCount > direCount
+
+    // Returns true if the team's faction matches the winning faction
+    return isTeamRadiant === data.radiant_win
+}
