@@ -57,8 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const fullPath = currentPath + currentSearch
 
         // If returnUrl is explicitly provided, use it
-        // Otherwise, if on home page or the explicit request, redirect to apply for staff
-        const returnTo = returnUrl || (currentPath === '/' ? '/apply?position=Staff' : fullPath)
+        // Otherwise, redirect to the current full path (which is / on home)
+        const returnTo = returnUrl || fullPath
 
         // Redirect to Discord OAuth
         window.location.href = `/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`

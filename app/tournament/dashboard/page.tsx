@@ -204,9 +204,11 @@ function PlayerRow({ player, team }: { player: any, team: any }) {
     return (
         <div key={player.id} className="flex flex-col gap-3 p-4 bg-black/40 border border-zinc-800/50 rounded-lg group hover:border-red-600/30 transition-all">
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-zinc-800 rounded-full overflow-hidden border-2 border-zinc-700/50">
-                    {player.users?.avatar ? (
-                        <img src={player.users.avatar} alt={player.users.username} className="w-full h-full object-cover" />
+                <div className="w-12 h-12 bg-zinc-800 rounded-full overflow-hidden border-2 border-zinc-700/50 shrink-0">
+                    {dotaData?.player?.avatarfull ? (
+                        <img src={dotaData.player.avatarfull} alt={player.users?.username} className="w-full h-full object-cover" />
+                    ) : player.users?.avatar ? (
+                        <img src={player.users.avatar} alt={player.users?.username} className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-zinc-500 bg-zinc-900 font-bold uppercase">
                             ?

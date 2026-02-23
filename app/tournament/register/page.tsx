@@ -28,6 +28,11 @@ export default function RegisterTournamentPage() {
             return
         }
 
+        if (!steamId.trim()) {
+            setError('Steam ID is required to score matches automatically.')
+            return
+        }
+
         setLoading(true)
         setError(null)
 
@@ -91,7 +96,7 @@ export default function RegisterTournamentPage() {
 
                                 <div>
                                     <label htmlFor="steamId" className="block text-sm font-medium text-zinc-300 mb-2 font-inter uppercase tracking-wider">
-                                        Steam ID 64 (Optional)
+                                        Steam ID 64 (Required)
                                     </label>
                                     <input
                                         type="text"
@@ -100,10 +105,11 @@ export default function RegisterTournamentPage() {
                                         onChange={(e) => setSteamId(e.target.value)}
                                         className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-red-500 transition-colors font-inter flex-1"
                                         placeholder="e.g. 76561198031234567"
+                                        required
                                         disabled={loading}
                                     />
                                     <p className="mt-2 text-[10px] text-zinc-500 font-mono">
-                                        Used to integrate your Dota 2 match history and stats.
+                                        Required to integrate your Dota 2 match history and automated scoring.
                                     </p>
                                 </div>
 

@@ -24,6 +24,11 @@ export default function InviteJoinPage() {
             return
         }
 
+        if (!steamId.trim()) {
+            setError('Steam ID is required to score matches automatically.')
+            return
+        }
+
         setLoading(true)
         setError(null)
 
@@ -73,7 +78,7 @@ export default function InviteJoinPage() {
 
                             <div className="mb-6 text-left">
                                 <label htmlFor="steamId" className="block text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-widest">
-                                    Dota 2 Steam ID (SteamID64)
+                                    Dota 2 Steam ID (SteamID64) *Required
                                 </label>
                                 <input
                                     type="text"
@@ -85,7 +90,7 @@ export default function InviteJoinPage() {
                                     disabled={loading}
                                 />
                                 <p className="mt-2 text-[10px] text-zinc-600">
-                                    Optional. Linking your Steam ID allows us to track your tournament stats.
+                                    Required. Linking your Steam ID allows us to track your tournament stats and auto-score matches.
                                 </p>
                             </div>
 

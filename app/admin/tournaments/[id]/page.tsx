@@ -4,6 +4,7 @@ import Link from 'next/link'
 import BracketGenerator from '@/components/admin/BracketGenerator'
 import TournamentBracketManager from '@/components/admin/TournamentBracketManager'
 import { formatCurrency } from '@/lib/currency-utils'
+import { TournamentSettings } from '@/components/admin/TournamentSettings'
 
 export default async function TournamentManagementPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -45,6 +46,8 @@ export default async function TournamentManagementPage({ params }: { params: Pro
                     </div>
                 </div>
             </div>
+
+            <TournamentSettings tournament={tournament} />
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white/[0.02] border border-white/10 rounded-sm p-6">
