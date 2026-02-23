@@ -116,30 +116,7 @@ export default function TournamentDashboard() {
 
                             <div className="space-y-4">
                                 {team.tournament_players.map((player: any) => (
-                                    <div key={player.id} className="flex items-center gap-4 p-4 bg-black/40 border border-zinc-800/50 rounded-lg">
-                                        <div className="w-12 h-12 bg-zinc-800 rounded-full overflow-hidden border-2 border-zinc-700/50">
-                                            {player.users?.avatar ? (
-                                                <img src={player.users.avatar} alt={player.users.username} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-zinc-500 bg-zinc-900">
-                                                    ?
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-white font-rajdhani text-xl tracking-wide">
-                                                {player.users?.username || 'Unknown User'}
-                                            </h3>
-                                            <p className="text-sm text-zinc-500 font-inter">
-                                                Joined {new Date(player.joined_at).toLocaleDateString()}
-                                            </p>
-                                        </div>
-                                        {player.user_id === team.captain_id && (
-                                            <span className="px-3 py-1 bg-yellow-500/10 text-yellow-500 text-xs font-bold uppercase tracking-wider rounded border border-yellow-500/20">
-                                                Captain
-                                            </span>
-                                        )}
-                                    </div>
+                                    <PlayerRow key={player.id} player={player} team={team} />
                                 ))}
 
                                 {Array.from({ length: Math.max(0, 5 - team.tournament_players.length) }).map((_, i) => (
@@ -198,3 +175,85 @@ export default function TournamentDashboard() {
         </main>
     )
 }
+
+function PlayerRow({ player, team }: { player: any, team: any }) {
+    const [dotaData, setDotaData] = useState<any>(null)
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        if (!player.steam_id) return
+
+        const fetchDotaStats = async () => {
+            setLoading(true)
+            try {
+                const res = await fetch(`/api/dota/player/${player.steam_id}`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setDotaData(data)
+                }
+            } catch (err) {
+                console.error('Failed to fetch player stats:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchDotaStats()
+    }, [player.steam_id])
+
+    return (
+        <div key={player.id} className="flex flex-col gap-3 p-4 bg-black/40 border border-zinc-800/50 rounded-lg group hover:border-red-600/30 transition-all">
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-zinc-800 rounded-full overflow-hidden border-2 border-zinc-700/50">
+                    {player.users?.avatar ? (
+                        <img src={player.users.avatar} alt={player.users.username} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-500 bg-zinc-900 font-bold uppercase">
+                            ?
+                        </div>
+                    )}
+                </div>
+                <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-white font-rajdhani text-xl tracking-wide group-hover:text-red-500 transition-colors">
+                            {player.users?.username || 'Unknown User'}
+                        </h3>
+                        {dotaData?.player?.rank_tier && (
+                            <div className="bg-red-600/20 text-[#dc143c] text-[8px] font-bold px-1.5 py-0.5 rounded border border-[#dc143c]/20 uppercase tracking-widest">
+                                Rank {dotaData.player.rank_tier}
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">
+                        {player.steam_id ? `STEAM: ${player.steam_id}` : 'STEAM ID NOT LINKED'}
+                    </p>
+                </div>
+                {player.user_id === team.captain_id && (
+                    <span className="px-3 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] font-black uppercase tracking-widest rounded border border-yellow-500/20">
+                        Captain
+                    </span>
+                )}
+            </div>
+
+            {player.steam_id && dotaData?.matches && dotaData.matches.length > 0 && (
+                <div className="pt-3 border-t border-zinc-900 mt-1 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {dotaData.matches.slice(0, 5).map((match: any) => {
+                        const isWin = (match.player_slot < 128 && match.radiant_win) || (match.player_slot >= 128 && !match.radiant_win)
+                        return (
+                            <div
+                                key={match.match_id}
+                                className={`flex-shrink-0 px-2 py-1 rounded text-[9px] font-bold border ${isWin
+                                    ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                    : 'bg-red-500/10 text-red-500 border-red-500/20'
+                                    }`}
+                            >
+                                {isWin ? 'W' : 'L'} • {match.kills}/{match.deaths}/{match.assists}
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+}
+

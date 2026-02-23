@@ -20,6 +20,10 @@ export default function Tournaments() {
             try {
                 // 1. Fetch tournaments (find first active or specific one)
                 const tRes = await fetch('/api/tournaments')
+                if (!tRes.ok) {
+                    console.warn('API /api/tournaments failed with status:', tRes.status)
+                    throw new Error('Database connection failed')
+                }
                 const tData = await tRes.json()
                 if (tData.tournaments && tData.tournaments.length > 0) {
                     setTournament(tData.tournaments[0])
