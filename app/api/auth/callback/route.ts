@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
 
         // Get return URL
-        const returnTo = cookieStore.get('auth_return_to')?.value || '/apply'
+        const returnTo = cookieStore.get('auth_return_to')?.value || '/'
 
         // Clear temporary cookies
         cookieStore.delete('oauth_state')

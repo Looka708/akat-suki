@@ -1,6 +1,8 @@
-import { getTournamentById, getTournamentTeams } from '@/lib/tournament-db'
+import { getTournamentById, getTournamentTeams, getTournamentMatches } from '@/lib/tournament-db'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import BracketGenerator from '@/components/admin/BracketGenerator'
+import TournamentBracketManager from '@/components/admin/TournamentBracketManager'
 
 export default async function TournamentManagementPage({ params }: { params: { id: string } }) {
     const tournament = await getTournamentById(params.id)
@@ -10,6 +12,7 @@ export default async function TournamentManagementPage({ params }: { params: { i
     }
 
     const teams = await getTournamentTeams(params.id)
+    const matches = await getTournamentMatches(params.id)
 
     return (
         <div className="space-y-8">
@@ -31,9 +34,9 @@ export default async function TournamentManagementPage({ params }: { params: { i
                             {tournament.game}
                         </span>
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-semibold uppercase ${tournament.status === 'live' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                                tournament.status === 'upcoming' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                                    tournament.status === 'registration_open' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                                        'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                            tournament.status === 'upcoming' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                tournament.status === 'registration_open' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                                    'bg-gray-500/10 text-gray-400 border border-gray-500/20'
                             }`}>
                             {tournament.status.replace('_', ' ')}
                         </span>
@@ -64,9 +67,7 @@ export default async function TournamentManagementPage({ params }: { params: { i
                 <div className="p-6 border-b border-white/10 flex items-center justify-between">
                     <h2 className="text-xl font-rajdhani font-bold text-white">Registered Teams</h2>
                     {teams.length > 0 && (
-                        <button className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors rounded-sm border border-white/10">
-                            Generate Bracket
-                        </button>
+                        <BracketGenerator tournamentId={tournament.id} />
                     )}
                 </div>
 
@@ -119,6 +120,8 @@ export default async function TournamentManagementPage({ params }: { params: { i
                     </table>
                 </div>
             </div>
+
+            <TournamentBracketManager matches={matches} tournamentId={tournament.id} />
         </div>
     )
 }

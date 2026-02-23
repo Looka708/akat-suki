@@ -270,3 +270,180 @@ export async function updateTeamDiscordInfo(teamId: string, roleId: string, chan
         throw error
     }
 }
+
+export async function applyToTournament(teamId: string, tournamentId: string) {
+    const { data: tournament, error: tErr } = await supabaseAdmin
+        .from('tournaments')
+        .select('max_slots')
+        .eq('id', tournamentId)
+        .single()
+
+    if (tErr || !tournament) {
+        throw new Error('Tournament not found.')
+    }
+
+    const { count, error: countErr } = await supabaseAdmin
+        .from('tournament_teams')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+
+    if (countErr) {
+        throw new Error('Error checking tournament capacity.')
+    }
+
+    if (count !== null && count >= tournament.max_slots) {
+        throw new Error('Tournament has reached maximum capacity.')
+    }
+
+    const { data, error } = await supabaseAdmin
+        .from('tournament_teams')
+        .update({ tournament_id: tournamentId, payment_status: 'pending' })
+        .eq('id', teamId)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error applying to tournament:', error)
+        throw error
+    }
+
+    return data
+}
+
+export async function generateBracket(tournamentId: string) {
+    // 1. Get tournament info & teams
+    const { data: tournament, error: tErr } = await supabaseAdmin.from('tournaments')
+        .select('*').eq('id', tournamentId).single()
+    if (tErr || !tournament) throw new Error('Tournament not found')
+
+    const { data: teams, error: teamsErr } = await supabaseAdmin.from('tournament_teams')
+        .select('*').eq('tournament_id', tournamentId)
+
+    if (teamsErr || !teams || teams.length < 2) {
+        throw new Error('Not enough teams to generate a bracket (min 2).')
+    }
+
+    // Find nearest power of 2 for bracket size (2, 4, 8, 16...)
+    let bracketSize = 2;
+    while (bracketSize < teams.length) {
+        bracketSize *= 2;
+    }
+
+    // 2. Clear existing matches
+    await supabaseAdmin.from('tournament_matches').delete().eq('tournament_id', tournamentId)
+
+    // 3. Generate layout
+    const numRounds = Math.log2(bracketSize)
+    const matchesToInsert: any[] = []
+
+    // Shuffle teams for initial seeding
+    const shuffledTeams = [...teams].sort(() => Math.random() - 0.5)
+
+    let baseTime = new Date().getTime()
+
+    // Round 1
+    const round1Count = bracketSize / 2
+    for (let i = 0; i < round1Count; i++) {
+        const team1 = shuffledTeams[i * 2] || null
+        const team2 = shuffledTeams[i * 2 + 1] || null
+
+        matchesToInsert.push({
+            tournament_id: tournamentId,
+            round: 1,
+            team1_id: team1 ? team1.id : null,
+            team2_id: team2 ? team2.id : null,
+            created_at: new Date(baseTime + i * 1000).toISOString(),
+            state: 'pending'
+        })
+    }
+
+    // Subsequent rounds
+    for (let r = 2; r <= numRounds; r++) {
+        const roundCount = bracketSize / Math.pow(2, r)
+        baseTime += 100000 // offset ensuring later rounds sort later if created_at matters globally
+        for (let i = 0; i < roundCount; i++) {
+            matchesToInsert.push({
+                tournament_id: tournamentId,
+                round: r,
+                team1_id: null,
+                team2_id: null,
+                created_at: new Date(baseTime + i * 1000).toISOString(),
+                state: 'pending'
+            })
+        }
+    }
+
+    const { error: insertErr } = await supabaseAdmin.from('tournament_matches').insert(matchesToInsert)
+    if (insertErr) throw new Error('Failed to insert matches: ' + insertErr.message)
+
+    return { numRounds, matchesGenerated: matchesToInsert.length }
+}
+
+export async function getTournamentMatches(tournamentId: string) {
+    const { data: matches, error } = await supabaseAdmin.from('tournament_matches')
+        .select(`
+            id, tournament_id, team1_id, team2_id, winner_id, team1_score, team2_score, round, state, created_at, scheduled_time,
+            team1:team1_id(name, logo_url),
+            team2:team2_id(name, logo_url),
+            winner:winner_id(name)
+        `)
+        .eq('tournament_id', tournamentId)
+        .order('round', { ascending: true })
+        .order('created_at', { ascending: true })
+
+    if (error) throw error
+    return matches
+}
+
+export async function updateMatchScore(matchId: string, team1Score: number, team2Score: number, winnerId: string | null) {
+    const { data: updatedMatch, error: updateErr } = await supabaseAdmin.from('tournament_matches')
+        .update({
+            team1_score: team1Score,
+            team2_score: team2Score,
+            winner_id: winnerId,
+            state: 'completed'
+        })
+        .eq('id', matchId)
+        .select()
+        .single()
+
+    if (updateErr) throw new Error('Failed to update match score: ' + updateErr.message)
+
+    // Resolve next match propagation if winner is determined
+    if (winnerId) {
+        const tournamentId = updatedMatch.tournament_id
+        const round = updatedMatch.round
+
+        const { data: roundMatches } = await supabaseAdmin.from('tournament_matches')
+            .select('id')
+            .eq('tournament_id', tournamentId)
+            .eq('round', round)
+            .order('created_at', { ascending: true })
+
+        if (roundMatches) {
+            const currentIndex = roundMatches.findIndex(m => m.id === matchId)
+            if (currentIndex !== -1) {
+                const nextRound = round + 1
+                const nextMatchIndex = Math.floor(currentIndex / 2)
+                const isTeam1 = currentIndex % 2 === 0
+
+                const { data: nextRoundMatches } = await supabaseAdmin.from('tournament_matches')
+                    .select('id')
+                    .eq('tournament_id', tournamentId)
+                    .eq('round', nextRound)
+                    .order('created_at', { ascending: true })
+
+                if (nextRoundMatches && nextRoundMatches[nextMatchIndex]) {
+                    const nextMatchId = nextRoundMatches[nextMatchIndex].id
+                    const updateField = isTeam1 ? { team1_id: winnerId } : { team2_id: winnerId }
+
+                    await supabaseAdmin.from('tournament_matches')
+                        .update(updateField)
+                        .eq('id', nextMatchId)
+                }
+            }
+        }
+    }
+
+    return updatedMatch
+}

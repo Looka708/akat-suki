@@ -4,12 +4,46 @@ import { useEffect, useRef, useState } from 'react'
 import anime from 'animejs'
 import Image from 'next/image'
 
+import { useAuth } from '@/components/AuthProvider'
+import TournamentBracketReadOnly from '@/components/TournamentBracketReadOnly'
+
 export default function Tournaments() {
     const sectionRef = useRef<HTMLElement>(null)
     const [activeTab, setActiveTab] = useState('all')
     const [selectedTournament, setSelectedTournament] = useState<any>(null)
+    const [dbTournaments, setDbTournaments] = useState<any[]>([])
+    const [applying, setApplying] = useState(false)
+    const [applyError, setApplyError] = useState<string | null>(null)
+    const [applySuccess, setApplySuccess] = useState(false)
+    const [showBracket, setShowBracket] = useState(false)
+    const [bracketMatches, setBracketMatches] = useState<any[]>([])
+    const [loadingBracket, setLoadingBracket] = useState(false)
+    const { isAuthenticated, login } = useAuth()
 
-    // Parallel Background Animation (Tournament Matrix)
+    const fetchBracket = async (tId: string) => {
+        if (tId.startsWith('dummy')) return
+        setLoadingBracket(true)
+        setShowBracket(true)
+        try {
+            const res = await fetch(`/api/tournament/${tId}/matches`)
+            const data = await res.json()
+            if (data.matches) setBracketMatches(data.matches)
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setLoadingBracket(false)
+        }
+    }
+
+    useEffect(() => {
+        fetch('/api/tournaments')
+            .then(res => res.json())
+            .then(data => {
+                if (data.tournaments) setDbTournaments(data.tournaments)
+            })
+            .catch(console.error)
+    }, [])
+
     useEffect(() => {
         const canvas = document.createElement('canvas')
         canvas.className = 'absolute inset-0 pointer-events-none opacity-[0.05]'
@@ -128,9 +162,9 @@ export default function Tournaments() {
         if (glow) glow.style.opacity = '0'
     }
 
-    const tournaments = [
+    const dummyTournaments = [
         {
-            id: '1',
+            id: 'dummy-1',
             name: 'AKATSUKI CUP 2024',
             game: 'Valorant',
             prize: '$500,000',
@@ -141,7 +175,7 @@ export default function Tournaments() {
             regions: 'GLOBAL'
         },
         {
-            id: '2',
+            id: 'dummy-2',
             name: 'SHADOW LEAGUE S4',
             game: 'Valorant',
             prize: '$50,000',
@@ -151,7 +185,7 @@ export default function Tournaments() {
             entry: '$50 / Team'
         },
         {
-            id: '3',
+            id: 'dummy-3',
             name: 'MIDNIGHT RUMBLE',
             game: 'Tekken 8',
             prize: '$1,000',
@@ -160,7 +194,7 @@ export default function Tournaments() {
             format: '1v1 Duel'
         },
         {
-            id: '4',
+            id: 'dummy-4',
             name: 'EMERALD INVITATIONAL',
             game: 'League of Legends',
             prize: '$25,000',
@@ -168,6 +202,23 @@ export default function Tournaments() {
             image: 'https://images.unsplash.com/photo-1560253023-3ec5d502959f?q=80&w=800',
             format: '5v5 Summoners Rift'
         }
+    ]
+
+    const tournaments: any[] = [
+        ...dbTournaments.map(t => ({
+            id: t.id,
+            name: t.name,
+            game: t.game,
+            prize: `$${t.prize_pool}`,
+            status: t.status === 'upcoming' ? 'REGISTRATION OPEN' : t.status.toUpperCase(),
+            image: t.game.toLowerCase().includes('valorant') ? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670' : 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800',
+            format: 'Standard',
+            entry: t.entry_fee > 0 ? `$${t.entry_fee} / Team` : 'FREE',
+            featured: false,
+            regions: '',
+            startsIn: ''
+        })),
+        ...dummyTournaments
     ]
 
     const filteredTournaments = activeTab === 'all'
@@ -268,13 +319,13 @@ export default function Tournaments() {
                             <div className="relative z-10 p-10 h-full flex flex-col justify-between">
                                 <div className="flex justify-between items-start">
                                     <div className={`px-4 py-1 text-[10px] font-bold tracking-[0.2em] uppercase border ${tournament.status === 'LIVE NOW'
-                                            ? 'bg-[#dc143c] border-[#dc143c] text-white animate-pulse'
-                                            : 'bg-white/5 border-white/20 text-gray-300'
+                                        ? 'bg-[#dc143c] border-[#dc143c] text-white animate-pulse'
+                                        : 'bg-white/5 border-white/20 text-gray-300'
                                         }`}>
                                         {tournament.status}
                                     </div>
                                     <div className="text-[10px] text-gray-500 font-mono tracking-widest bg-black/50 px-3 py-1 backdrop-blur-sm">
-                                        ID: {tournament.id.padStart(4, '0')}
+                                        ID: {tournament.id.substring(0, 4)}
                                     </div>
                                 </div>
 
@@ -325,21 +376,24 @@ export default function Tournaments() {
                         <div className="absolute top-0 left-0 w-full h-[2px] bg-[#dc143c] animate-pulse"></div>
 
                         {/* Modal Hero */}
-                        <div className="w-full md:w-1/2 relative bg-gray-900 border-r border-white/10">
+                        <div className={`relative bg-gray-900 border-r border-white/10 ${showBracket ? 'hidden md:block md:w-1/3' : 'w-full md:w-1/2'}`}>
                             <Image src={selectedTournament.image} alt={selectedTournament.name} fill className="object-cover opacity-70" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
                             <div className="absolute bottom-0 left-0 p-12">
                                 <span className="text-[#dc143c] text-xs font-bold tracking-[0.5em] uppercase mb-4 block">Event_Brief</span>
-                                <h2 className="text-5xl font-rajdhani font-black text-white uppercase tracking-tighter italic leading-none">
+                                <h2 className="text-3xl md:text-5xl font-rajdhani font-black text-white uppercase tracking-tighter italic leading-none">
                                     {selectedTournament.name}
                                 </h2>
                             </div>
                         </div>
 
                         {/* Modal Meta */}
-                        <div className="flex-1 p-12 flex flex-col justify-between">
+                        <div className={`p-12 flex flex-col justify-between ${showBracket ? 'w-full md:w-2/3 overflow-y-auto' : 'flex-1'}`}>
                             <button
-                                onClick={() => setSelectedTournament(null)}
+                                onClick={() => {
+                                    setSelectedTournament(null)
+                                    setShowBracket(false)
+                                }}
                                 className="absolute top-8 right-8 text-gray-500 hover:text-white font-mono text-xs"
                             >
                                 [ X_EXIT ]
@@ -368,9 +422,81 @@ export default function Tournaments() {
                                 </div>
                             </div>
 
-                            <button className="w-full py-5 bg-[#dc143c] text-white text-xs font-bold uppercase tracking-[0.5em] hover:bg-white hover:text-black transition-all shadow-[0_0_30px_rgba(220,20,60,0.3)]">
-                                Enter Arena Access
-                            </button>
+                            <div className="mt-4">
+                                {applyError && (
+                                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500 text-red-500 text-xs font-mono">
+                                        [ERROR]: {applyError}
+                                    </div>
+                                )}
+                                {applySuccess && (
+                                    <div className="mb-4 p-3 bg-green-500/10 border border-green-500 text-green-500 text-xs font-mono">
+                                        [SUCCESS]: Your team has been registered successfully.
+                                    </div>
+                                )}
+
+                                {showBracket ? (
+                                    <div className="flex-1 min-h-0 relative">
+                                        <button
+                                            onClick={() => setShowBracket(false)}
+                                            className="mb-8 text-xs font-mono text-gray-500 hover:text-white uppercase tracking-widest flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                            </svg>
+                                            Return to Access Protocol
+                                        </button>
+
+                                        {loadingBracket ? (
+                                            <div className="text-center text-gray-400 font-mono py-12 animate-pulse">[LOADING DATA_CORE...]</div>
+                                        ) : (
+                                            <TournamentBracketReadOnly matches={bracketMatches} />
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            disabled={applying || applySuccess}
+                                            onClick={async () => {
+                                                if (!isAuthenticated) {
+                                                    if (login) login();
+                                                    return;
+                                                }
+                                                if (selectedTournament.id.startsWith('dummy')) {
+                                                    setApplyError('Cannot join a simulation (dummy) event.');
+                                                    return;
+                                                }
+                                                setApplying(true);
+                                                setApplyError(null);
+                                                setApplySuccess(false);
+                                                try {
+                                                    const res = await fetch('/api/tournament/apply', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ tournamentId: selectedTournament.id }),
+                                                    });
+                                                    const data = await res.json();
+                                                    if (!res.ok) throw new Error(data.error || 'Failed to apply');
+                                                    setApplySuccess(true);
+                                                } catch (err: any) {
+                                                    setApplyError(err.message);
+                                                } finally {
+                                                    setApplying(false);
+                                                }
+                                            }}
+                                            className="flex-1 py-5 bg-[#dc143c] text-white text-xs font-bold uppercase tracking-[0.5em] hover:bg-white hover:text-black transition-all shadow-[0_0_30px_rgba(220,20,60,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {applying ? 'INITIALIZING...' : applySuccess ? 'ACCESS GRANTED' : isAuthenticated ? 'Enter Arena' : 'Authenticate to Enter'}
+                                        </button>
+
+                                        <button
+                                            onClick={() => fetchBracket(selectedTournament.id)}
+                                            className="px-8 py-5 border border-white/20 text-white text-xs font-bold uppercase tracking-[0.5em] hover:bg-white/10 transition-all"
+                                        >
+                                            View Bracket
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

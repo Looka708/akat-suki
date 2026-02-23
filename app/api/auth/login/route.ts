@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Store return URL if provided
     const searchParams = request.nextUrl.searchParams
-    const returnTo = searchParams.get('returnTo') || '/apply'
+    const returnTo = searchParams.get('returnTo') || '/'
     cookieStore.set('auth_return_to', returnTo, {
         path: '/',
         maxAge: 600,
