@@ -40,7 +40,7 @@ export default function BracketGenerator({ tournamentId, disabled }: { tournamen
                 disabled={generating || disabled}
                 className="px-4 py-2 bg-[#dc143c]/10 text-[#dc143c] hover:bg-[#dc143c] hover:text-white transition-colors rounded-sm border border-[#dc143c]/30 text-sm font-bold uppercase tracking-widest disabled:opacity-50"
             >
-                {generating ? 'SIMULATING BRACKET...' : 'GENERATE BRACKET'}
+                {disabled ? 'REQUIRES MIN 2 TEAMS' : generating ? 'SIMULATING BRACKET...' : 'GENERATE BRACKET'}
             </button>
         </div>
     )
