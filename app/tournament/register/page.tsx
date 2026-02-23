@@ -11,6 +11,7 @@ export default function RegisterTournamentPage() {
     const router = useRouter()
 
     const [teamName, setTeamName] = useState('')
+    const [steamId, setSteamId] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successTeam, setSuccessTeam] = useState<any | null>(null)
@@ -34,7 +35,7 @@ export default function RegisterTournamentPage() {
             const res = await fetch('/api/tournament/teams', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: teamName }),
+                body: JSON.stringify({ name: teamName, steamId }),
             })
 
             const data = await res.json()
@@ -86,6 +87,24 @@ export default function RegisterTournamentPage() {
                                         required
                                         disabled={loading}
                                     />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="steamId" className="block text-sm font-medium text-zinc-300 mb-2 font-inter uppercase tracking-wider">
+                                        Steam ID 64 (Optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="steamId"
+                                        value={steamId}
+                                        onChange={(e) => setSteamId(e.target.value)}
+                                        className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-red-500 transition-colors font-inter flex-1"
+                                        placeholder="e.g. 76561198031234567"
+                                        disabled={loading}
+                                    />
+                                    <p className="mt-2 text-[10px] text-zinc-500 font-mono">
+                                        Used to integrate your Dota 2 match history and stats.
+                                    </p>
                                 </div>
 
                                 {error && (

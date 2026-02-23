@@ -22,11 +22,28 @@ export default function Hero() {
     return (
         <section
             ref={heroRef}
-            className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden border-b border-white/5 bg-[#050505]"
+            className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden border-b border-white/5 bg-black"
         >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#dc143c] rounded-full blur-[150px] opacity-20 pointer-events-none animate-pulse"></div>
+            {/* Video Background */}
+            <div className="absolute inset-0 z-0">
+                <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover opacity-40"
+                >
+                    <source src="/video.mp4" type="video/mp4" />
+                </video>
+                {/* Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60"></div>
+                <div className="absolute inset-0 bg-black/20"></div>
+            </div>
+
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#dc143c] rounded-full blur-[150px] opacity-20 pointer-events-none animate-pulse z-1"></div>
+
             <div
-                className="absolute right-10 top-1/3 text-[200px] opacity-[0.03] pointer-events-none font-rajdhani font-bold leading-none select-none"
+                className="absolute right-10 top-1/3 text-[200px] opacity-[0.03] pointer-events-none font-rajdhani font-bold leading-none select-none z-1"
                 style={{ writingMode: 'vertical-rl' }}
             >
                 暁

@@ -32,6 +32,7 @@ export interface TournamentPlayer {
     team_id: string
     user_id: string
     discord_id: string | null
+    steam_id: string | null
     joined_at: string
 }
 
@@ -204,7 +205,7 @@ export async function getTeamById(teamId: string) {
     return data as TournamentTeam | null
 }
 
-export async function joinTeam(teamId: string, userId: string, discordId: string | null) {
+export async function joinTeam(teamId: string, userId: string, discordId: string | null, steamId?: string | null) {
     // Check if already in the team
     const { data: existing } = await supabaseAdmin
         .from('tournament_players')
@@ -222,7 +223,8 @@ export async function joinTeam(teamId: string, userId: string, discordId: string
         .insert({
             team_id: teamId,
             user_id: userId,
-            discord_id: discordId
+            discord_id: discordId,
+            steam_id: steamId || null
         })
         .select()
         .single()

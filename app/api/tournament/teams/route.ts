@@ -13,7 +13,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { name } = body
+        const { name, steamId } = body
 
         if (!name || name.trim().length < 3) {
             return NextResponse.json({ error: 'Team name must be at least 3 characters long.' }, { status: 400 })
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
         // Add creator as player
         const discordId = user.id // The session stores discord ID in user.id
-        await joinTeam(team.id, user.id, discordId)
+        await joinTeam(team.id, user.id, discordId, steamId)
 
         // Asynchronously setup discord role and channel
         const guildId = process.env.DISCORD_GUILD_ID

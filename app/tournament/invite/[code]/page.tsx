@@ -14,6 +14,7 @@ export default function InviteJoinPage() {
     const inviteCode = params.code as string
 
     const [loading, setLoading] = useState(false)
+    const [steamId, setSteamId] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
@@ -30,7 +31,7 @@ export default function InviteJoinPage() {
             const res = await fetch('/api/tournament/join', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inviteCode }),
+                body: JSON.stringify({ inviteCode, steamId }),
             })
 
             const data = await res.json()
@@ -69,6 +70,24 @@ export default function InviteJoinPage() {
                             <p className="text-zinc-400 mb-8 font-inter">
                                 Join the team by accepting the invite!
                             </p>
+
+                            <div className="mb-6 text-left">
+                                <label htmlFor="steamId" className="block text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-widest">
+                                    Dota 2 Steam ID (SteamID64)
+                                </label>
+                                <input
+                                    type="text"
+                                    id="steamId"
+                                    value={steamId}
+                                    onChange={(e) => setSteamId(e.target.value)}
+                                    placeholder="e.g. 76561198031234567"
+                                    className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-red-600 transition-all text-white font-mono text-sm"
+                                    disabled={loading}
+                                />
+                                <p className="mt-2 text-[10px] text-zinc-600">
+                                    Optional. Linking your Steam ID allows us to track your tournament stats.
+                                </p>
+                            </div>
 
                             {error && (
                                 <div className="p-4 mb-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm font-inter">
