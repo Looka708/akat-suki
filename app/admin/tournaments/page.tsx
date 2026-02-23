@@ -1,6 +1,8 @@
 import { getTournaments } from '@/lib/tournament-db'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminTournamentsPage() {
     const tournaments = await getTournaments()
 
@@ -50,9 +52,9 @@ export default async function AdminTournamentsPage() {
                                     </td>
                                     <td className="p-4">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${tournament.status === 'live' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                                                tournament.status === 'upcoming' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                                                    tournament.status === 'registration_open' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                                                        'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                                            tournament.status === 'upcoming' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                                tournament.status === 'registration_open' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                                                    'bg-gray-500/10 text-gray-400 border border-gray-500/20'
                                             }`}>
                                             {tournament.status.replace('_', ' ')}
                                         </span>

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getTournaments } from '@/lib/tournament-db'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
     try {
         const tournaments = await getTournaments()

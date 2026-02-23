@@ -3,6 +3,8 @@ import { PERMISSIONS } from '@/lib/admin-roles'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { UserActions } from '@/components/admin/UserActions'
 
+export const dynamic = 'force-dynamic'
+
 export default async function UsersPage() {
     await requirePermission(PERMISSIONS.VIEW_USERS)
 
