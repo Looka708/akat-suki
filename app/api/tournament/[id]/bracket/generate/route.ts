@@ -4,15 +4,16 @@ import { getAdminUser } from '@/lib/admin-auth'
 
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params
     try {
         const adminUser = await getAdminUser()
         if (!adminUser) {
             return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 401 })
         }
 
-        const result = await generateBracket(params.id)
+        const result = await generateBracket(id)
         return NextResponse.json(result)
     } catch (error: any) {
         console.error('Failed to generate bracket:', error)

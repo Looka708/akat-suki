@@ -3,10 +3,11 @@ import { getTournamentMatches } from '@/lib/tournament-db'
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params
     try {
-        const matches = await getTournamentMatches(params.id)
+        const matches = await getTournamentMatches(id)
         return NextResponse.json({ matches })
     } catch (error: any) {
         console.error('Failed to get tournament matches:', error)

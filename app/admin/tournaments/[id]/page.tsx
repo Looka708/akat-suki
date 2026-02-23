@@ -4,15 +4,16 @@ import Link from 'next/link'
 import BracketGenerator from '@/components/admin/BracketGenerator'
 import TournamentBracketManager from '@/components/admin/TournamentBracketManager'
 
-export default async function TournamentManagementPage({ params }: { params: { id: string } }) {
-    const tournament = await getTournamentById(params.id)
+export default async function TournamentManagementPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
+    const tournament = await getTournamentById(id)
 
     if (!tournament) {
         notFound()
     }
 
-    const teams = await getTournamentTeams(params.id)
-    const matches = await getTournamentMatches(params.id)
+    const teams = await getTournamentTeams(id)
+    const matches = await getTournamentMatches(id)
 
     return (
         <div className="space-y-8">

@@ -3,9 +3,9 @@ import { getPlayerSummaries, getMatchHistory } from '@/lib/dota-api'
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
-    const steamId = params.id
+    const { id: steamId } = await params
 
     try {
         const players = await getPlayerSummaries([steamId])

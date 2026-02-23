@@ -4,8 +4,9 @@ import { getAdminUser } from '@/lib/admin-auth'
 
 export async function PUT(
     request: Request,
-    { params }: { params: { matchId: string } }
+    { params }: { params: Promise<{ matchId: string }> }
 ) {
+    const { matchId } = await params
     try {
         const adminUser = await getAdminUser()
         if (!adminUser) {
@@ -19,7 +20,7 @@ export async function PUT(
             return NextResponse.json({ error: 'Invalid scores provided.' }, { status: 400 })
         }
 
-        const updatedMatch = await updateMatchScore(params.matchId, team1Score, team2Score, winnerId || null)
+        const updatedMatch = await updateMatchScore(matchId, team1Score, team2Score, winnerId || null)
 
         return NextResponse.json({ success: true, match: updatedMatch })
     } catch (error: any) {
