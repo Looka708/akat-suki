@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
         // Asynchronously setup discord role and channel
         const guildId = process.env.DISCORD_GUILD_ID
-        const categoryId = process.env.DISCORD_GAMERS_CATEGORY_ID
+        const categoryId = process.env.DISCORD_TOURNAMENT_CATEGORY_ID
 
         if (guildId) {
             // Using a background execution pattern without blocking the response

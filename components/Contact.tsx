@@ -102,8 +102,8 @@ export default function Contact() {
                                 onChange={handleChange}
                                 disabled={isSubmitting}
                                 className={`w-full bg-transparent border-b py-4 text-white focus:outline-none transition-colors placeholder-gray-600 text-sm font-light disabled:opacity-50 ${errors.email
-                                        ? 'border-red-500 focus:border-red-500'
-                                        : 'border-white/20 focus:border-[#dc143c]'
+                                    ? 'border-red-500 focus:border-red-500'
+                                    : 'border-white/20 focus:border-[#dc143c]'
                                     }`}
                                 aria-invalid={!!errors.email}
                                 aria-describedby={errors.email ? 'email-error' : undefined}

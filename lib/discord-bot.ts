@@ -150,3 +150,19 @@ export async function createTeamRoleAndChannels(
         throw err
     }
 }
+
+/**
+ * Adds a user to the Discord server using their OAuth access token.
+ */
+export async function joinDiscordServer(guildId: string, userId: string, accessToken: string) {
+    try {
+        await discordBotFetch(`/guilds/${guildId}/members/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ access_token: accessToken })
+        })
+    } catch (err) {
+        console.error(`Failed to add user ${userId} to guild ${guildId}:`, err)
+        throw err
+    }
+}
+

@@ -3,6 +3,7 @@ import { exchangeCodeForToken, getDiscordUser } from '@/lib/discord-auth'
 import { createSession } from '@/lib/session'
 import { cookies } from 'next/headers'
 import { upsertUser } from '@/lib/db'
+import { joinDiscordServer } from '@/lib/discord-bot'
 
 
 export async function GET(request: NextRequest) {
@@ -62,6 +63,16 @@ export async function GET(request: NextRequest) {
             avatar: discordUser.avatar,
             email: discordUser.email,
         })
+
+        // Attempt to add user to the server
+        const guildId = process.env.DISCORD_GUILD_ID
+        if (guildId) {
+            try {
+                await joinDiscordServer(guildId, discordUser.id, tokenResponse.access_token)
+            } catch (err) {
+                console.error('Non-fatal error joining server:', err)
+            }
+        }
 
 
         // Get return URL
