@@ -1,5 +1,6 @@
 import { getTournaments } from '@/lib/tournament-db'
 import Link from 'next/link'
+import DeleteTournamentButton from './delete-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +67,7 @@ export default async function AdminTournamentsPage() {
                                         >
                                             Manage
                                         </Link>
+                                        <DeleteTournamentButton id={tournament.id} name={tournament.name} />
                                     </td>
                                 </tr>
                             ))}

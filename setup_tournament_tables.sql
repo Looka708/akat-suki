@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS public.tournaments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add missing columns safely if the table already existed before it was added
+ALTER TABLE public.tournaments 
+    ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'USD';
+
 -- Create tournament_teams table (if it doesn't exist)
 CREATE TABLE IF NOT EXISTS public.tournament_teams (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

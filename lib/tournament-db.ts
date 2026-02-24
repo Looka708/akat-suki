@@ -110,6 +110,18 @@ export async function updateTournamentStatus(id: string, status: string) {
     return data as Tournament
 }
 
+export async function deleteTournament(id: string) {
+    const { error } = await supabaseAdmin
+        .from('tournaments')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error deleting tournament:', error)
+        throw error
+    }
+}
+
 export async function getTournamentTeams(tournamentId: string) {
     const { data, error } = await supabaseAdmin
         .from('tournament_teams')
