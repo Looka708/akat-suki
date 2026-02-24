@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { updateMatchScore } from '@/lib/tournament-db'
 import { getAdminUser } from '@/lib/admin-auth'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function PUT(
     request: Request,
@@ -14,7 +15,17 @@ export async function PUT(
         }
 
         const body = await request.json()
-        const { team1Score, team2Score, winnerId } = body
+        const { team1Score, team2Score, winnerId, state, scheduledTime } = body
+
+        if (state && !team1Score && !team2Score) {
+            // Just updating state or schedule
+            const { error: updateErr } = await supabaseAdmin.from('tournament_matches')
+                .update({ state, scheduled_time: scheduledTime })
+                .eq('id', matchId)
+
+            if (updateErr) throw new Error(updateErr.message)
+            return NextResponse.json({ success: true })
+        }
 
         if (typeof team1Score !== 'number' || typeof team2Score !== 'number') {
             return NextResponse.json({ error: 'Invalid scores provided.' }, { status: 400 })

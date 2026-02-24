@@ -169,8 +169,8 @@ Before you begin, ensure you have the following installed:
    Run the Supabase migrations (schema available in the project):
 
    ```sql
-   -- Create profiles table
-   create table profiles (
+   -- Create users table
+   create table users (
      id text primary key,
      discord_id text unique not null,
      username text not null,
@@ -185,7 +185,7 @@ Before you begin, ensure you have the following installed:
    -- Create applications table
    create table applications (
      id uuid primary key default uuid_generate_v4(),
-     user_id text references profiles(id),
+     user_id text references users(id),
      game text not null,
      rank text not null,
      experience text not null,
@@ -199,21 +199,21 @@ Before you begin, ensure you have the following installed:
    );
 
    -- Create indexes
-   create index profiles_discord_id_idx on profiles(discord_id);
+   create index users_discord_id_idx on users(discord_id);
    create index applications_user_id_idx on applications(user_id);
    create index applications_status_idx on applications(status);
 
    -- Enable Row Level Security
-   alter table profiles enable row level security;
+   alter table users enable row level security;
    alter table applications enable row level security;
 
    -- Create policies (customize as needed)
-   create policy "Public profiles are viewable by everyone"
-     on profiles for select
+   create policy "Public users are viewable by everyone"
+     on users for select
      using (true);
 
    create policy "Users can update own profile"
-     on profiles for update
+     on users for update
      using (auth.uid() = id);
    ```
 

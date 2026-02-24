@@ -91,16 +91,40 @@ export default function TournamentDashboard() {
                         </p>
                     </div>
                     {isCaptain && (
-                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg flex items-center gap-4">
-                            <div>
-                                <p className="text-xs text-zinc-500 uppercase tracking-widest font-rajdhani font-bold mb-1">Invite Code</p>
-                                <p className="font-mono text-white selection:bg-red-500/50">{team.invite_code}</p>
+                        <div className="flex flex-col gap-2 relative">
+                            <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg flex items-center gap-4">
+                                <div>
+                                    <p className="text-xs text-zinc-500 uppercase tracking-widest font-rajdhani font-bold mb-1">Invite Code</p>
+                                    <p className="font-mono text-white selection:bg-red-500/50">{team.invite_code}</p>
+                                </div>
+                                <button
+                                    onClick={() => navigator.clipboard.writeText(inviteLink)}
+                                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-sm text-white font-rajdhani uppercase tracking-wider font-bold rounded flex items-center gap-2 transition-colors"
+                                >
+                                    Copy Link
+                                </button>
                             </div>
                             <button
-                                onClick={() => navigator.clipboard.writeText(inviteLink)}
-                                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-sm text-white font-rajdhani uppercase tracking-wider font-bold rounded flex items-center gap-2 transition-colors"
+                                onClick={async () => {
+                                    if (confirm('Are you sure you want to delete this team? This action cannot be undone.')) {
+                                        try {
+                                            const res = await fetch('/api/tournament/my-team', {
+                                                method: 'DELETE',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ teamId: team.id })
+                                            })
+                                            if (res.ok) {
+                                                window.location.reload()
+                                            } else {
+                                                const err = await res.json()
+                                                alert(err.error || 'Failed to delete team')
+                                            }
+                                        } catch (e: any) { alert(e.message) }
+                                    }
+                                }}
+                                className="w-full py-2 bg-red-900/30 hover:bg-red-900/60 border border-red-500/30 text-red-500 text-xs font-rajdhani uppercase tracking-widest font-bold rounded transition-colors"
                             >
-                                Copy Link
+                                Delete Team
                             </button>
                         </div>
                     )}
@@ -116,7 +140,18 @@ export default function TournamentDashboard() {
 
                             <div className="space-y-4">
                                 {team.tournament_players.map((player: any) => (
-                                    <PlayerRow key={player.id} player={player} team={team} />
+                                    <PlayerRow
+                                        key={player.id}
+                                        player={player}
+                                        team={team}
+                                        isCaptain={isCaptain}
+                                        onKick={(userId) => {
+                                            setTeam({
+                                                ...team,
+                                                tournament_players: team.tournament_players.filter((p: any) => p.user_id !== userId)
+                                            })
+                                        }}
+                                    />
                                 ))}
 
                                 {Array.from({ length: Math.max(0, 5 - team.tournament_players.length) }).map((_, i) => (
@@ -176,9 +211,10 @@ export default function TournamentDashboard() {
     )
 }
 
-function PlayerRow({ player, team }: { player: any, team: any }) {
+function PlayerRow({ player, team, isCaptain, onKick }: { player: any, team: any, isCaptain: boolean, onKick: (userId: string) => void }) {
     const [dotaData, setDotaData] = useState<any>(null)
     const [loading, setLoading] = useState(false)
+    const [kicking, setKicking] = useState(false)
 
     useEffect(() => {
         if (!player.steam_id) return
@@ -200,6 +236,26 @@ function PlayerRow({ player, team }: { player: any, team: any }) {
 
         fetchDotaStats()
     }, [player.steam_id])
+
+    const handleKick = async () => {
+        if (!confirm(`Are you sure you want to remove ${player.users?.username} from the team?`)) return
+        setKicking(true)
+        try {
+            const res = await fetch('/api/tournament/my-team/kick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ teamId: team.id, userIdToKick: player.user_id })
+            })
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || 'Failed to kick player')
+            }
+            onKick(player.user_id)
+        } catch (err: any) {
+            alert(err.message)
+            setKicking(false)
+        }
+    }
 
     return (
         <div key={player.id} className="flex flex-col gap-3 p-4 bg-black/40 border border-zinc-800/50 rounded-lg group hover:border-red-600/30 transition-all">
@@ -230,10 +286,20 @@ function PlayerRow({ player, team }: { player: any, team: any }) {
                         {player.steam_id ? `STEAM: ${player.steam_id}` : 'STEAM ID NOT LINKED'}
                     </p>
                 </div>
-                {player.user_id === team.captain_id && (
+                {player.user_id === team.captain_id ? (
                     <span className="px-3 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] font-black uppercase tracking-widest rounded border border-yellow-500/20">
                         Captain
                     </span>
+                ) : (
+                    isCaptain && (
+                        <button
+                            onClick={handleKick}
+                            disabled={kicking}
+                            className="px-3 py-1 bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest rounded border border-red-500/20 hover:bg-red-500/20 hover:text-white transition-colors"
+                        >
+                            {kicking ? 'Removing...' : 'Kick'}
+                        </button>
+                    )
                 )}
             </div>
 

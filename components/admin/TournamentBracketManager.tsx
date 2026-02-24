@@ -117,13 +117,35 @@ export default function TournamentBracketManager({
                                         </div>
 
                                         {!isCompleted && isReady && (
-                                            <button
-                                                onClick={() => handleUpdateMatch(m)}
-                                                disabled={isUpdating || (scores[m.id]?.t1 === scores[m.id]?.t2)}
-                                                className="w-full py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50"
-                                            >
-                                                {isUpdating ? 'UPDATING...' : 'COMPLETE MATCH'}
-                                            </button>
+                                            <div className="flex flex-col gap-2 w-full">
+                                                {m.state === 'pending' && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            setUpdating(m.id)
+                                                            try {
+                                                                const res = await fetch(`/api/tournament/matches/${m.id}`, {
+                                                                    method: 'PUT',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ state: 'live', scheduledTime: new Date().toISOString() })
+                                                                })
+                                                                if (res.ok) router.refresh()
+                                                            } finally { setUpdating(null) }
+                                                        }}
+                                                        disabled={isUpdating}
+                                                        className="w-full py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors border border-yellow-500/30"
+                                                    >
+                                                        {isUpdating ? 'UPDATING...' : 'SET LIVE'}
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleUpdateMatch(m)}
+                                                    disabled={isUpdating || (scores[m.id]?.t1 === scores[m.id]?.t2)}
+                                                    className="w-full py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50"
+                                                >
+                                                    {isUpdating ? 'UPDATING...' : 'COMPLETE MATCH'}
+                                                </button>
+                                            </div>
                                         )}
                                         {isCompleted && (
                                             <div className="text-center text-[10px] text-green-500 uppercase tracking-widest font-mono">

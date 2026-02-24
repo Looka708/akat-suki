@@ -1,49 +1,44 @@
 import { NextResponse } from 'next/server'
 import { getUserFromSession } from '@/lib/session'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-import { applyToTournament } from '@/lib/tournament-db'
+import { applyToTournament, getTeamById } from '@/lib/tournament-db'
+import { z } from 'zod'
+
+const ApplyTournamentSchema = z.object({
+    teamId: z.string(),
+    tournamentId: z.string()
+})
 
 export async function POST(request: Request) {
     try {
         const user = await getUserFromSession()
-
         if (!user) {
-            return NextResponse.json({ error: 'Unauthorized. Please login.' }, { status: 401 })
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
         const body = await request.json()
-        const { tournamentId } = body
-
-        if (!tournamentId) {
-            return NextResponse.json({ error: 'Tournament ID is required.' }, { status: 400 })
+        const parsedBody = ApplyTournamentSchema.safeParse(body)
+        if (!parsedBody.success) {
+            return NextResponse.json({ error: parsedBody.error.issues[0].message }, { status: 400 })
         }
 
-        // Fetch user's team where they are captain
-        const { data: team, error: teamError } = await supabaseAdmin
-            .from('tournament_teams')
-            .select('id, tournament_id')
-            .eq('captain_id', user.id)
-            .single()
+        const { teamId, tournamentId } = parsedBody.data
 
-        if (teamError || !team) {
-            return NextResponse.json({ error: 'You must be a team captain to apply.' }, { status: 403 })
+        const team = await getTeamById(teamId)
+        if (!team) {
+            return NextResponse.json({ error: 'Team not found' }, { status: 404 })
         }
 
-        if (team.tournament_id === tournamentId) {
-            return NextResponse.json({ error: 'Team is already registered for this tournament.' }, { status: 400 })
+        if (team.captain_id !== user.id) {
+            return NextResponse.json({ error: 'Only the captain can apply to a tournament' }, { status: 403 })
         }
 
-        if (team.tournament_id) {
-            return NextResponse.json({ error: 'Team is already registered for another tournament.' }, { status: 400 })
-        }
+        await applyToTournament(teamId, tournamentId)
 
-        const updatedTeam = await applyToTournament(team.id, tournamentId)
-
-        return NextResponse.json({ success: true, team: updatedTeam })
+        return NextResponse.json({ success: true })
     } catch (error: any) {
-        console.error('Apply to tournament error:', error)
+        console.error('Apply tournament error:', error)
         return NextResponse.json(
-            { error: error.message || 'Failed to apply' },
+            { error: error.message || 'Failed to apply to tournament' },
             { status: 500 }
         )
     }

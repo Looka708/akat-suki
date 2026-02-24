@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getUserFromSession } from '@/lib/session'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { deleteTeam } from '@/lib/tournament-db'
 
 export async function GET(request: Request) {
     try {
@@ -54,6 +55,32 @@ export async function GET(request: Request) {
         console.error('Fetch team error:', error)
         return NextResponse.json(
             { error: error.message || 'Failed to fetch team' },
+            { status: 500 }
+        )
+    }
+}
+
+export async function DELETE(request: Request) {
+    try {
+        const user = await getUserFromSession()
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        const body = await request.json()
+        const { teamId } = body
+
+        if (!teamId) {
+            return NextResponse.json({ error: 'Team ID is required' }, { status: 400 })
+        }
+
+        await deleteTeam(teamId, user.id)
+
+        return NextResponse.json({ success: true })
+    } catch (error: any) {
+        console.error('Delete team error:', error)
+        return NextResponse.json(
+            { error: error.message || 'Failed to delete team' },
             { status: 500 }
         )
     }

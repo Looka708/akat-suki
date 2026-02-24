@@ -268,7 +268,38 @@ export default function Tournaments() {
                                         ))}
                                     </div>
 
-                                    <div className="flex gap-4 flex-col sm:flex-row">
+                                    <div className="flex gap-4 flex-col sm:flex-row mt-4">
+                                        {team.captain_id === user?.id && !team.tournament_id && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        const res = await fetch('/api/tournament/apply', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ teamId: team.id, tournamentId: tournament.id })
+                                                        });
+                                                        if (res.ok) {
+                                                            setTeam({ ...team, tournament_id: tournament.id, payment_status: 'pending' });
+                                                            alert('Successfully registered your team to the tournament!');
+                                                        } else {
+                                                            const d = await res.json();
+                                                            alert(d.error || 'Failed to apply');
+                                                        }
+                                                    } catch (e: any) { alert(e.message); }
+                                                }}
+                                                className="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm border border-green-500"
+                                            >
+                                                REGISTER FOR TOURNAMENT
+                                            </button>
+                                        )}
+                                        {team.tournament_id === tournament.id && (
+                                            <div className="flex-1 py-4 bg-green-900/50 text-green-400 text-center text-xs font-bold uppercase tracking-[0.2em] rounded-sm border border-green-800">
+                                                PARTICIPATING (PAYMENT: {team.payment_status?.toUpperCase() || 'PENDING'})
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-4 flex-col sm:flex-row mt-4">
                                         {team.captain_id === user?.id && (
                                             <button
                                                 onClick={handleCopyLink}
@@ -282,6 +313,14 @@ export default function Tournaments() {
                                             className="flex-1 py-4 bg-[#dc143c] hover:bg-white hover:text-black text-center text-white text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
                                         >
                                             SQUAD DASHBOARD
+                                        </Link>
+                                    </div>
+                                    <div className="mt-4">
+                                        <Link
+                                            href={`/tournament/${tournament.id}/leaderboard`}
+                                            className="block w-full py-4 bg-transparent border border-[#dc143c] text-[#dc143c] hover:bg-[#dc143c] hover:text-white text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                        >
+                                            VIEW TOURNAMENT LEADERBOARD
                                         </Link>
                                     </div>
 

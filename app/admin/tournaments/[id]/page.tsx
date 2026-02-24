@@ -5,6 +5,7 @@ import BracketGenerator from '@/components/admin/BracketGenerator'
 import TournamentBracketManager from '@/components/admin/TournamentBracketManager'
 import { formatCurrency } from '@/lib/currency-utils'
 import { TournamentSettings } from '@/components/admin/TournamentSettings'
+import TeamRowActions from '@/components/admin/TeamRowActions'
 
 export default async function TournamentManagementPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -100,15 +101,13 @@ export default async function TournamentManagementPage({ params }: { params: Pro
                                         {team.region || 'Unknown'}
                                     </td>
                                     <td className="p-4">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${team.payment_status === 'paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${team.payment_status === 'paid' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : team.payment_status === 'rejected' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
                                             }`}>
                                             {team.payment_status}
                                         </span>
                                     </td>
                                     <td className="p-4 text-right">
-                                        <button className="text-red-500 hover:text-red-400 transition-colors text-sm font-medium uppercase tracking-wider">
-                                            Kick
-                                        </button>
+                                        <TeamRowActions teamId={team.id} currentStatus={team.payment_status} />
                                     </td>
                                 </tr>
                             ))}

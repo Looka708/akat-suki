@@ -238,6 +238,50 @@ export async function joinTeam(teamId: string, userId: string, discordId: string
     return data as TournamentPlayer
 }
 
+export async function removePlayer(teamId: string, userIdToRemove: string, requesterUserId: string) {
+    // Verify requester is captain
+    const { data: team, error: teamErr } = await supabaseAdmin
+        .from('tournament_teams')
+        .select('captain_id')
+        .eq('id', teamId)
+        .single()
+
+    if (teamErr || !team) throw new Error('Team not found')
+    if (team.captain_id !== requesterUserId) throw new Error('Only the team captain can remove players')
+    if (team.captain_id === userIdToRemove) throw new Error('Captain cannot be removed')
+
+    const { error } = await supabaseAdmin
+        .from('tournament_players')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('user_id', userIdToRemove)
+
+    if (error) {
+        console.error('Error removing player:', error)
+        throw error
+    }
+}
+
+export async function deleteTeam(teamId: string, captainId: string) {
+    const { data: team, error: teamErr } = await supabaseAdmin
+        .from('tournament_teams')
+        .select('captain_id')
+        .eq('id', teamId)
+        .single()
+
+    if (teamErr || !team) throw new Error('Team not found')
+    if (team.captain_id !== captainId) throw new Error('Only the captain can delete the team')
+
+    const { error } = await supabaseAdmin
+        .from('tournament_teams')
+        .delete()
+        .eq('id', teamId)
+
+    if (error) {
+        throw error
+    }
+}
+
 export async function getTeamMembers(teamId: string) {
     const { data, error } = await supabaseAdmin
         .from('tournament_players')
@@ -396,6 +440,52 @@ export async function getTournamentMatches(tournamentId: string) {
 
     if (error) throw error
     return matches
+}
+
+export async function getTournamentLeaderboard(tournamentId: string) {
+    // get all teams in tournament
+    const { data: teams, error: teamsErr } = await supabaseAdmin
+        .from('tournament_teams')
+        .select('id, name, logo_url')
+        .eq('tournament_id', tournamentId)
+
+    if (teamsErr) throw new Error('Failed to fetch teams: ' + teamsErr.message)
+
+    // get all completed matches
+    const { data: matches, error: matchesErr } = await supabaseAdmin
+        .from('tournament_matches')
+        .select('team1_id, team2_id, winner_id')
+        .eq('tournament_id', tournamentId)
+        .eq('state', 'completed')
+
+    if (matchesErr) throw new Error('Failed to fetch matches: ' + matchesErr.message)
+
+    const leaderboard = (teams || []).map(team => {
+        let wins = 0
+        let losses = 0
+
+            ; (matches || []).forEach(m => {
+                if (m.team1_id === team.id || m.team2_id === team.id) {
+                    if (m.winner_id === team.id) {
+                        wins++
+                    } else if (m.winner_id) {
+                        losses++
+                    }
+                }
+            })
+
+        return {
+            ...team,
+            wins,
+            losses,
+            matchesPlayed: wins + losses,
+            points: wins * 3
+        }
+    })
+
+    leaderboard.sort((a, b) => b.points - a.points || b.wins - a.wins || a.losses - b.losses)
+
+    return leaderboard
 }
 
 export async function updateMatchScore(matchId: string, team1Score: number, team2Score: number, winnerId: string | null) {

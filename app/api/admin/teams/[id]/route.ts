@@ -36,11 +36,15 @@ export async function PATCH(
         await requirePermission(PERMISSIONS.VIEW_CONTENT)
         const { id } = await params
         const body = await request.json()
-        const { tournamentId } = body
+        const { tournamentId, payment_status } = body
+
+        const updateData: any = {}
+        if (tournamentId !== undefined) updateData.tournament_id = tournamentId || null
+        if (payment_status !== undefined) updateData.payment_status = payment_status
 
         const { error } = await supabaseAdmin
             .from('tournament_teams')
-            .update({ tournament_id: tournamentId || null })
+            .update(updateData)
             .eq('id', id)
 
         if (error) throw error
