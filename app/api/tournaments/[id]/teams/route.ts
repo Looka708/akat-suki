@@ -5,9 +5,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const { data: teams, error } = await supabaseAdmin
             .from('tournament_teams')
             .select(`
@@ -20,7 +21,7 @@ export async function GET(
                     )
                 )
             `)
-            .eq('tournament_id', params.id)
+            .eq('tournament_id', id)
 
         if (error) {
             throw error
