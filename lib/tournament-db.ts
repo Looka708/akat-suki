@@ -111,6 +111,29 @@ export async function updateTournamentStatus(id: string, status: string) {
 }
 
 export async function deleteTournament(id: string) {
+    // 1. Delete any matches generated for this tournament
+    const { error: matchesError } = await supabaseAdmin
+        .from('tournament_matches')
+        .delete()
+        .eq('tournament_id', id)
+
+    if (matchesError) {
+        console.error('Error deleting tournament matches:', matchesError)
+        throw matchesError
+    }
+
+    // 2. Unlink teams from this tournament so they are not deleted but are no longer in the tournament
+    const { error: teamsError } = await supabaseAdmin
+        .from('tournament_teams')
+        .update({ tournament_id: null })
+        .eq('tournament_id', id)
+
+    if (teamsError) {
+        console.error('Error unlinking tournament teams:', teamsError)
+        throw teamsError
+    }
+
+    // 3. Delete the tournament
     const { error } = await supabaseAdmin
         .from('tournaments')
         .delete()
