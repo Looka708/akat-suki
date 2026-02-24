@@ -75,3 +75,78 @@ export async function moveUserToVoiceChannel(guildId: string, userId: string, ch
         console.error(`Could not move user ${userId} to voice channel ${channelId}. They might not be connected to voice.`)
     }
 }
+
+/**
+ * Auto-generates a Discord Role, Text Channel, and Voice channel for a Team.
+ * Requires the Discord Bot to have Manages Roles and Manage Channels permissions.
+ */
+export async function createTeamRoleAndChannels(
+    guildId: string,
+    teamName: string,
+    categoryId?: string // Optional category ID to nest channels under
+) {
+    try {
+        // 1. Create Role
+        const roleData = await discordBotFetch(`/guilds/${guildId}/roles`, {
+            method: 'POST',
+            body: JSON.stringify({
+                name: teamName,
+                color: 0xDC143C, // Crimson
+                hoist: false,
+                mentionable: true
+            })
+        })
+        const roleId = roleData.id
+
+        const permissionOverwrites = [
+            {
+                id: guildId, // @everyone
+                type: 0,
+                allow: "0",
+                deny: String(BigInt(VIEW_CHANNEL) | BigInt(SEND_MESSAGES))
+            },
+            {
+                id: roleId,
+                type: 0,
+                allow: String(BigInt(VIEW_CHANNEL) | BigInt(SEND_MESSAGES)),
+                deny: "0"
+            }
+        ]
+
+        // 2. Create Text Channel
+        const textBody: any = {
+            name: teamName.toLowerCase().replace(/\s+/g, '-'),
+            type: GUILD_TEXT,
+            permission_overwrites: permissionOverwrites
+        }
+        if (categoryId) textBody.parent_id = categoryId
+
+        const textChannel = await discordBotFetch(`/guilds/${guildId}/channels`, {
+            method: 'POST',
+            body: JSON.stringify(textBody)
+        })
+
+        // 3. Create Voice Channel
+        const voiceBody: any = {
+            name: `${teamName} Voice`,
+            type: 2, // GUILD_VOICE
+            permission_overwrites: permissionOverwrites,
+            user_limit: 5 // Optional: limit voice channel to match team size
+        }
+        if (categoryId) voiceBody.parent_id = categoryId
+
+        const voiceChannel = await discordBotFetch(`/guilds/${guildId}/channels`, {
+            method: 'POST',
+            body: JSON.stringify(voiceBody)
+        })
+
+        return {
+            roleId,
+            textChannelId: textChannel.id,
+            voiceChannelId: voiceChannel.id
+        }
+    } catch (err) {
+        console.error(`Failed to completely setup Discord channels and roles for team ${teamName}:`, err)
+        throw err
+    }
+}

@@ -103,3 +103,23 @@ CREATE POLICY "Allow service_role full access tournament_players" ON public.tour
 
 CREATE POLICY "Allow service_role full access tournament_matches" ON public.tournament_matches
     FOR ALL USING (true);
+
+-- Create free_agents table
+CREATE TABLE IF NOT EXISTS public.free_agents (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE UNIQUE,
+    game TEXT NOT NULL DEFAULT 'Dota 2',
+    rank_tier INTEGER,
+    roles TEXT[] NOT NULL DEFAULT '{}',
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.free_agents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read free_agents" ON public.free_agents;
+DROP POLICY IF EXISTS "Allow service_role full access free_agents" ON public.free_agents;
+
+CREATE POLICY "Allow public read free_agents" ON public.free_agents FOR SELECT USING (true);
+CREATE POLICY "Allow service_role full access free_agents" ON public.free_agents FOR ALL USING (true);

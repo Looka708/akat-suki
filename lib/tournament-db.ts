@@ -575,3 +575,67 @@ export async function updateMatchScore(matchId: string, team1Score: number, team
 
     return updatedMatch
 }
+
+// ========================
+// FREE AGENTS (LFG)
+// ========================
+
+export interface FreeAgent {
+    id: string
+    user_id: string
+    game: string
+    rank_tier: number | null
+    roles: string[]
+    description: string | null
+    is_active: boolean
+    created_at: string
+    updated_at: string
+}
+
+export async function getFreeAgents() {
+    const { data, error } = await supabaseAdmin
+        .from('free_agents')
+        .select(`
+            *,
+            users (username, avatar, discriminator)
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data
+}
+
+export async function getFreeAgentByUser(userId: string) {
+    const { data, error } = await supabaseAdmin
+        .from('free_agents')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return data as FreeAgent | null
+}
+
+export async function upsertFreeAgent(agentData: Partial<FreeAgent> & { user_id: string }) {
+    const existing = await getFreeAgentByUser(agentData.user_id)
+
+    if (existing) {
+        const { data, error } = await supabaseAdmin
+            .from('free_agents')
+            .update({ ...agentData, updated_at: new Date().toISOString() })
+            .eq('user_id', agentData.user_id)
+            .select()
+            .single()
+        if (error) throw error
+        return data as FreeAgent
+    } else {
+        const { data, error } = await supabaseAdmin
+            .from('free_agents')
+            .insert({ ...agentData })
+            .select()
+            .single()
+        if (error) throw error
+        return data as FreeAgent
+    }
+}

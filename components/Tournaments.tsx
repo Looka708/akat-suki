@@ -116,6 +116,20 @@ export default function Tournaments() {
         return () => observer.disconnect()
     }, [])
 
+    // Animate lists when data is loaded
+    useEffect(() => {
+        if (!loading && (team || registeredTeams.length > 0)) {
+            anime({
+                targets: ['.registration-list > div', '.squad-list > div'],
+                translateY: [20, 0],
+                opacity: [0, 1],
+                duration: 800,
+                delay: anime.stagger(100),
+                easing: 'easeOutQuart',
+            })
+        }
+    }, [loading, team, registeredTeams])
+
     const handleCopyLink = () => {
         if (!team) return
         const inviteLink = `${window.location.origin}/tournament/invite/${team.invite_code}`
@@ -220,7 +234,7 @@ export default function Tournaments() {
                                                     All slots are filled. Here are the participating squads.
                                                 </p>
                                             </div>
-                                            <div className="space-y-6">
+                                            <div className="space-y-6 registration-list">
                                                 {registeredTeams.map((t: any) => (
                                                     <div key={t.id} className="bg-white/5 border border-white/10 p-4 rounded-sm">
                                                         <h5 className="text-xl font-rajdhani font-bold text-white uppercase mb-3 border-b border-white/10 pb-2">
@@ -312,7 +326,7 @@ export default function Tournaments() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-3 mb-8">
+                                        <div className="space-y-3 mb-8 squad-list">
                                             {team.tournament_players?.map((p: any) => (
                                                 <div key={p.id} className="flex items-center gap-4 bg-white/5 border border-white/10 p-3 rounded-sm">
                                                     <div className="w-8 h-8 rounded-full overflow-hidden bg-black border border-white/20">

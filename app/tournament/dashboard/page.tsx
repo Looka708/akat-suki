@@ -133,10 +133,37 @@ export default function TournamentDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="md:col-span-2 space-y-6">
                         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-xl backdrop-blur-sm relative overflow-hidden">
-                            <h2 className="text-2xl font-rajdhani font-bold mb-6 text-white uppercase tracking-wider flex items-center gap-3">
-                                <span className="w-8 h-1 bg-red-600"></span>
-                                Roster ({team.tournament_players.length}/5)
-                            </h2>
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                                <h2 className="text-2xl font-rajdhani font-bold text-white uppercase tracking-wider flex items-center gap-3">
+                                    <span className="w-8 h-1 bg-red-600"></span>
+                                    Roster ({team.tournament_players.length}/5)
+                                </h2>
+                                {team.tournament_players.length < 5 && (
+                                    <span className="text-[10px] text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 rounded animate-pulse font-bold uppercase tracking-widest w-fit">
+                                        Looking for {5 - team.tournament_players.length} more
+                                    </span>
+                                )}
+                                {team.tournament_players.length === 5 && (
+                                    <span className="text-[10px] text-green-500 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded font-bold uppercase tracking-widest w-fit">
+                                        Roster Full
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="mb-6">
+                                <div className="flex justify-between text-xs text-zinc-500 font-mono uppercase tracking-widest mb-2">
+                                    <span>Completeness</span>
+                                    <span>{team.tournament_players.length * 20}%</span>
+                                </div>
+                                <div className="w-full bg-black/50 h-2 rounded-full overflow-hidden border border-zinc-800">
+                                    <div
+                                        className="h-full bg-red-600 transition-all duration-1000 ease-out relative"
+                                        style={{ width: `${(team.tournament_players.length / 5) * 100}%` }}
+                                    >
+                                        <div className="absolute top-0 right-0 bottom-0 w-10 bg-gradient-to-l from-white/30 to-transparent"></div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="space-y-4">
                                 {team.tournament_players.map((player: any) => (

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getUserFromSession } from '@/lib/session'
 import { createTeam, joinTeam } from '@/lib/tournament-db'
-import { createTeamRole, createTeamVoiceChannel } from '@/lib/discord-tournament'
+import { createTeamRoleAndChannels } from '@/lib/discord-bot'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { z } from 'zod'
 
@@ -56,28 +56,18 @@ export async function POST(request: Request) {
             // so we can return the response to the user while finishing Discord tasks.
             ; (async () => {
                 try {
-                    // 1. Create Role with Retry
-                    const roleResponse = await retry(async () => {
-                        return await createTeamRole(guildId, team.name)
+                    // Create Role, Voice, and Text Channel
+                    const setupResponse = await retry(async () => {
+                        return await createTeamRoleAndChannels(guildId, team.name, categoryId)
                     }, 3, 2000)
 
-                    // 2. Create Channel with Retry
-                    const channelResponse = await retry(async () => {
-                        return await createTeamVoiceChannel(
-                            guildId,
-                            team.name,
-                            categoryId,
-                            roleResponse.id
-                        )
-                    }, 3, 2000)
-
-                    // 3. Update DB
+                    // Update DB with the generated IDs
                     await retry(async () => {
                         await supabaseAdmin
                             .from('tournament_teams')
                             .update({
-                                discord_role_id: roleResponse.id,
-                                discord_voice_channel_id: channelResponse.id
+                                discord_role_id: setupResponse.roleId,
+                                discord_voice_channel_id: setupResponse.voiceChannelId
                             })
                             .eq('id', team.id)
                     }, 3, 2000)
