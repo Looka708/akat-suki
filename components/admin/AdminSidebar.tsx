@@ -113,7 +113,7 @@ export function AdminSidebar() {
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                 {navigation.map((item) => {
                     const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
-                    const isComingSoon = ['/admin/settings'].includes(item.href)
+                    const isComingSoon = false
 
 
                     if (isComingSoon) {

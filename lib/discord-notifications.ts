@@ -191,6 +191,46 @@ export async function sendAdminNotification(data: {
     })
 }
 
+
+
+// Tournament Registration notification
+export async function sendTournamentRegistrationNotification(data: {
+    teamName: string
+    tournamentName: string
+    captainName: string
+}) {
+    return sendDiscordNotification({
+        embeds: [
+            {
+                title: '🏆 New Tournament Registration',
+                description: `**${data.teamName}** has registered for **${data.tournamentName}**!`,
+                color: 0xF59E0B, // Yellow/Gold
+                fields: [
+                    {
+                        name: '🛡️ Team',
+                        value: data.teamName,
+                        inline: true,
+                    },
+                    {
+                        name: '👑 Captain',
+                        value: data.captainName,
+                        inline: true,
+                    },
+                    {
+                        name: '🎮 Tournament',
+                        value: data.tournamentName,
+                        inline: false,
+                    },
+                ],
+                timestamp: new Date().toISOString(),
+                footer: {
+                    text: 'AKATSUKI Tournaments',
+                },
+            },
+        ],
+    })
+}
+
 // ============================================
 // Discord Role Management Functions
 // ============================================
