@@ -32,6 +32,15 @@ const ROLE_COLORS: Record<string, string> = {
     'Support': 'text-purple-400 bg-purple-500/10 border-purple-500/20',
 }
 
+function getOpenDotaUrl(steamId: string | null): string | null {
+    if (!steamId) return null
+    // Convert SteamID64 to Steam32 (account ID) for OpenDota
+    const steam64 = BigInt(steamId)
+    const steam32 = steam64 - BigInt('76561197960265728')
+    if (steam32 < 0) return null
+    return `https://www.opendota.com/players/${steam32}`
+}
+
 function getMmrTier(mmr: number): { label: string; color: string } {
     if (mmr >= 8000) return { label: 'IMMORTAL', color: 'text-red-400 bg-gradient-to-r from-red-500/20 to-yellow-500/10 border border-red-500/30' }
     if (mmr >= 6500) return { label: 'DIVINE', color: 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/20' }
@@ -43,7 +52,7 @@ function getMmrTier(mmr: number): { label: string; color: string } {
     return { label: 'HERALD', color: 'text-zinc-600 bg-zinc-700/10 border border-zinc-700/20' }
 }
 
-type SortKey = 'mmr' | 'dotaName' | 'role1'
+type SortKey = 'mmr' | 'dotaName' | 'role1' | 'team'
 type RoleFilter = 'all' | 'Carry' | 'Mid' | 'Offlane' | 'Soft Support' | 'Hard Support'
 
 export default function PlayerPoolPage() {
@@ -80,7 +89,8 @@ export default function PlayerPoolPage() {
             const q = search.toLowerCase()
             list = list.filter(p =>
                 (p.dota_name || '').toLowerCase().includes(q) ||
-                (p.users?.username || '').toLowerCase().includes(q)
+                (p.users?.username || '').toLowerCase().includes(q) ||
+                (p.tournament_teams?.name || '').toLowerCase().includes(q)
             )
         }
 
@@ -100,6 +110,11 @@ export default function PlayerPoolPage() {
                 return sortDir === 'desc' ? nb.localeCompare(na) : na.localeCompare(nb)
             }
             if (sortKey === 'role1') return sortDir === 'desc' ? (b.role_1 || '').localeCompare(a.role_1 || '') : (a.role_1 || '').localeCompare(b.role_1 || '')
+            if (sortKey === 'team') {
+                const ta = a.tournament_teams?.name || ''
+                const tb = b.tournament_teams?.name || ''
+                return sortDir === 'desc' ? tb.localeCompare(ta) : ta.localeCompare(tb)
+            }
             return 0
         })
 
@@ -112,14 +127,16 @@ export default function PlayerPoolPage() {
     }
 
     const stats = useMemo(() => {
-        if (players.length === 0) return { total: 0, avgMmr: 0, maxMmr: 0, coreCount: 0, supportCount: 0 }
-        const withMmr = players.filter(p => p.mmr > 0)
-        const avgMmr = withMmr.length > 0 ? Math.round(withMmr.reduce((s, p) => s + p.mmr, 0) / withMmr.length) : 0
-        const maxMmr = withMmr.length > 0 ? Math.max(...withMmr.map(p => p.mmr)) : 0
+        if (players.length === 0) return { total: 0, teamCount: 0, coreCount: 0, supportCount: 0, avgMmr: 0 }
         const coreRoles = ['Carry', 'Mid', 'Offlane']
         const coreCount = players.filter(p => coreRoles.includes(p.role_1)).length
         const supportCount = players.filter(p => ['Soft Support', 'Hard Support', 'Support'].includes(p.role_1)).length
-        return { total: players.length, avgMmr, maxMmr, coreCount, supportCount }
+        const teams = new Set(players.map(p => p.tournament_teams?.id).filter(Boolean))
+
+        const withMmr = players.filter(p => (p.mmr || 0) > 0)
+        const avgMmr = withMmr.length > 0 ? Math.round(withMmr.reduce((s, p) => s + (p.mmr || 0), 0) / withMmr.length) : 0
+
+        return { total: players.length, teamCount: teams.size, coreCount, supportCount, avgMmr }
     }, [players])
 
     if (loading) {
@@ -175,12 +192,12 @@ export default function PlayerPoolPage() {
                         <p className="text-2xl font-rajdhani font-black text-white">{stats.total}</p>
                     </div>
                     <div className="border border-white/10 bg-zinc-900/60 rounded-sm p-4 text-center">
-                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Avg MMR</p>
-                        <p className="text-2xl font-rajdhani font-black text-[#dc143c]">{stats.avgMmr.toLocaleString()}</p>
+                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Teams</p>
+                        <p className="text-2xl font-rajdhani font-black text-white">{stats.teamCount}</p>
                     </div>
                     <div className="border border-white/10 bg-zinc-900/60 rounded-sm p-4 text-center">
-                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Highest MMR</p>
-                        <p className="text-2xl font-rajdhani font-black text-yellow-400">{stats.maxMmr.toLocaleString()}</p>
+                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Avg MMR</p>
+                        <p className="text-2xl font-rajdhani font-black text-[#dc143c]">{stats.avgMmr.toLocaleString()}</p>
                     </div>
                     <div className="border border-white/10 bg-zinc-900/60 rounded-sm p-4 text-center">
                         <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Core Players</p>
@@ -197,7 +214,7 @@ export default function PlayerPoolPage() {
                     <div className="relative flex-1">
                         <input
                             type="text"
-                            placeholder="Search player or discord name..."
+                            placeholder="Search player, discord or team name..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             className="w-full bg-zinc-900/80 border border-white/10 rounded-sm px-4 py-2.5 text-sm font-mono text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#dc143c]/40 transition-colors"
@@ -220,15 +237,15 @@ export default function PlayerPoolPage() {
                     </div>
                 </div>
 
-                {/* Results count */}
+                {/* Results count + sort */}
                 <div className="flex items-center justify-between mb-4">
                     <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">{filtered.length} players shown</p>
                     <div className="flex items-center gap-1 text-[10px] text-zinc-600 font-mono">
                         <span className="uppercase tracking-widest">Sort by:</span>
-                        {(['mmr', 'dotaName', 'role1'] as SortKey[]).map(k => (
+                        {(['mmr', 'dotaName', 'role1', 'team'] as SortKey[]).map(k => (
                             <button key={k} onClick={() => handleSort(k)}
                                 className={`px-2 py-0.5 rounded-sm ml-1 uppercase tracking-wider transition-colors ${sortKey === k ? 'text-[#dc143c] bg-[#dc143c]/10' : 'text-zinc-500 hover:text-white'}`}>
-                                {k === 'dotaName' ? 'Name' : k === 'role1' ? 'Role' : 'MMR'} {sortKey === k ? (sortDir === 'desc' ? '↓' : '↑') : ''}
+                                {k === 'dotaName' ? 'Name' : k === 'role1' ? 'Role' : k === 'mmr' ? 'MMR' : 'Team'} {sortKey === k ? (sortDir === 'desc' ? '↓' : '↑') : ''}
                             </button>
                         ))}
                     </div>
@@ -249,16 +266,17 @@ export default function PlayerPoolPage() {
                         {/* Table */}
                         <div className="border border-white/10 rounded-sm overflow-hidden bg-zinc-900/30">
                             {/* Header */}
-                            <div className="hidden md:grid grid-cols-[50px_1fr_1fr_100px_100px_120px_120px_120px_100px] border-b border-white/10 bg-white/[0.03]">
+                            <div className="hidden md:grid grid-cols-[50px_1fr_1fr_120px_80px_100px_100px_100px_80px_80px] border-b border-white/10 bg-white/[0.03]">
                                 <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest">#</div>
                                 <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest">Player</div>
                                 <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest">Discord</div>
+                                <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest">Team</div>
                                 <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest text-right">MMR</div>
-                                <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest text-center">Tier</div>
                                 <div className="px-3 py-3 text-[9px] text-[#dc143c] font-mono uppercase tracking-widest text-center">★★★★★</div>
                                 <div className="px-3 py-3 text-[9px] text-green-500 font-mono uppercase tracking-widest text-center">★★★★</div>
                                 <div className="px-3 py-3 text-[9px] text-yellow-500 font-mono uppercase tracking-widest text-center">★★★</div>
                                 <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest text-center">Ping</div>
+                                <div className="px-3 py-3 text-[9px] text-zinc-500 font-mono uppercase tracking-widest text-center">Profile</div>
                             </div>
 
                             {/* Rows */}
@@ -269,6 +287,7 @@ export default function PlayerPoolPage() {
                                     const isTopPlayer = (player.mmr || 0) >= 8000
                                     const displayName = player.dota_name || player.users?.username || 'Unknown'
                                     const discordName = player.users?.username || player.discord_id || ''
+                                    const openDotaUrl = getOpenDotaUrl(player.steam_id)
                                     const rank = idx + 1
 
                                     return (
@@ -276,36 +295,23 @@ export default function PlayerPoolPage() {
                                             key={player.id}
                                             onMouseEnter={() => setHoveredPlayer(idx)}
                                             onMouseLeave={() => setHoveredPlayer(null)}
-                                            className={`grid grid-cols-1 md:grid-cols-[50px_1fr_1fr_100px_100px_120px_120px_120px_100px] items-center transition-all duration-200
+                                            className={`grid grid-cols-1 md:grid-cols-[50px_1fr_1fr_120px_80px_100px_100px_100px_80px_80px] items-center transition-all duration-200
                                                 ${isHovered ? 'bg-white/[0.04]' : idx % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.01]'}
                                                 ${isTopPlayer ? 'border-l-2 border-l-[#dc143c]/40' : ''}`}
                                         >
                                             {/* Rank */}
                                             <div className="hidden md:flex px-3 py-3 items-center">
-                                                <span className={`text-sm font-mono font-bold ${rank <= 3 ? 'text-[#dc143c]' : rank <= 10 ? 'text-yellow-500' : 'text-zinc-600'}`}>
-                                                    {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
+                                                <span className={`text-sm font-mono font-bold ${rank <= 3 ? 'text-[#dc143c]' : 'text-zinc-600'}`}>
+                                                    {rank}
                                                 </span>
                                             </div>
 
-                                            {/* Dota Name + Dotabuff */}
+                                            {/* Dota Name */}
                                             <div className="px-3 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    {player.dotabuff_url ? (
-                                                        <a href={player.dotabuff_url} target="_blank" rel="noopener noreferrer"
-                                                            className="text-sm font-rajdhani font-bold text-white hover:text-[#dc143c] transition-colors truncate">
-                                                            {displayName}
-                                                        </a>
-                                                    ) : (
-                                                        <span className="text-sm font-rajdhani font-bold text-white truncate">{displayName}</span>
-                                                    )}
-                                                    {player.dotabuff_url && (
-                                                        <a href={player.dotabuff_url} target="_blank" rel="noopener noreferrer"
-                                                            className="text-[8px] text-zinc-700 hover:text-[#dc143c] transition-colors shrink-0">
-                                                            DOTABUFF ↗
-                                                        </a>
-                                                    )}
+                                                    <span className="text-sm font-rajdhani font-bold text-white truncate">{displayName}</span>
                                                     {player.tournament_teams && (
-                                                        <span className="text-[8px] text-zinc-700 font-mono shrink-0">
+                                                        <span className="text-[8px] text-zinc-700 font-mono shrink-0 md:hidden">
                                                             [{player.tournament_teams.name}]
                                                         </span>
                                                     )}
@@ -316,7 +322,7 @@ export default function PlayerPoolPage() {
                                                 {/* Mobile-only extras */}
                                                 <div className="md:hidden flex items-center gap-3 mt-1">
                                                     <span className="text-[10px] text-zinc-500 font-mono">{discordName}</span>
-                                                    {player.mmr > 0 && <span className="text-[10px] text-[#dc143c] font-mono font-bold">{player.mmr.toLocaleString()} MMR</span>}
+                                                    {(player.mmr || 0) > 0 && <span className="text-[10px] text-[#dc143c] font-mono font-bold">{player.mmr.toLocaleString()} MMR</span>}
                                                 </div>
                                             </div>
 
@@ -325,18 +331,16 @@ export default function PlayerPoolPage() {
                                                 <span className="text-xs text-zinc-400 font-mono">{discordName}</span>
                                             </div>
 
-                                            {/* MMR */}
-                                            <div className="hidden md:block px-3 py-3 text-right">
-                                                <span className="text-sm font-mono font-bold text-white">{player.mmr > 0 ? player.mmr.toLocaleString() : '-'}</span>
+                                            {/* Team */}
+                                            <div className="hidden md:block px-3 py-3">
+                                                <span className="text-xs text-zinc-400 font-mono truncate block">
+                                                    {player.tournament_teams?.name || '-'}
+                                                </span>
                                             </div>
 
-                                            {/* Tier Badge */}
-                                            <div className="hidden md:flex px-3 py-3 justify-center">
-                                                {player.mmr > 0 && (
-                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-sm ${tier.color}`}>
-                                                        {tier.label}
-                                                    </span>
-                                                )}
+                                            {/* MMR */}
+                                            <div className="hidden md:block px-3 py-3 text-right">
+                                                <span className="text-sm font-mono font-bold text-white">{(player.mmr || 0) > 0 ? player.mmr.toLocaleString() : '-'}</span>
                                             </div>
 
                                             {/* Role 1 (5 Stars) */}
@@ -371,6 +375,18 @@ export default function PlayerPoolPage() {
                                                 <span className="text-[10px] text-zinc-600 font-mono">{player.ping || '-'}</span>
                                             </div>
 
+                                            {/* OpenDota Link */}
+                                            <div className="hidden md:flex px-3 py-3 justify-center">
+                                                {openDotaUrl ? (
+                                                    <a href={openDotaUrl} target="_blank" rel="noopener noreferrer"
+                                                        className="text-[9px] text-sky-500 hover:text-sky-400 uppercase font-bold tracking-wider transition-colors">
+                                                        OpenDota ↗
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-[10px] text-zinc-700 font-mono">-</span>
+                                                )}
+                                            </div>
+
                                             {/* Mobile role badges */}
                                             <div className="md:hidden px-3 pb-3 flex gap-1.5 flex-wrap">
                                                 {[player.role_1, player.role_2, player.role_3].filter(Boolean).map((role, i) => (
@@ -378,6 +394,12 @@ export default function PlayerPoolPage() {
                                                         {role}
                                                     </span>
                                                 ))}
+                                                {openDotaUrl && (
+                                                    <a href={openDotaUrl} target="_blank" rel="noopener noreferrer"
+                                                        className="text-[8px] text-sky-500 font-bold px-1.5 py-0.5 rounded-sm border border-sky-500/20 bg-sky-500/10">
+                                                        OpenDota ↗
+                                                    </a>
+                                                )}
                                             </div>
                                         </div>
                                     )

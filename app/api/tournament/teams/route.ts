@@ -2,12 +2,21 @@ import { NextResponse } from 'next/server'
 import { getUserFromSession } from '@/lib/session'
 import { createTeam, joinTeam } from '@/lib/tournament-db'
 import { createTeamRoleAndChannels } from '@/lib/discord-bot'
+import { assignTeamRoleToMember } from '@/lib/discord-tournament'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { z } from 'zod'
 
 const CreateTeamSchema = z.object({
     name: z.string().min(3, "Team name must be at least 3 characters long.").max(50, "Team name is too long."),
-    steamId: z.string().optional()
+    steamId: z.string().optional(),
+    dotaName: z.string().optional(),
+    mmr: z.string().optional(),
+    dotabuffUrl: z.string().nullable().optional(),
+    role1: z.string().optional(),
+    role2: z.string().optional(),
+    role3: z.string().optional(),
+    ping: z.string().optional(),
+    captainNotes: z.string().optional(),
 })
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -37,23 +46,29 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: parsedBody.error.issues[0].message }, { status: 400 })
         }
 
-        const { name, steamId } = parsedBody.data
+        const { name, steamId, dotaName, mmr, dotabuffUrl, role1, role2, role3, ping, captainNotes } = parsedBody.data
 
         // Create the team in DB (generates invite code)
         const team = await createTeam(name, user.id)
 
-        // Add creator as player
+        // Add creator as player with profile data
         const discordId = user.id // The session stores discord ID in user.id
-        await joinTeam(team.id, user.id, discordId, steamId)
+        await joinTeam(team.id, user.id, discordId, steamId, {
+            mmr: mmr ? parseInt(mmr) : 0,
+            dotabuff_url: dotabuffUrl || null,
+            role_1: role1 || '',
+            role_2: role2 || '',
+            role_3: role3 || '',
+            ping: ping || '',
+            captain_notes: captainNotes || '',
+            dota_name: dotaName || ''
+        })
 
         // Asynchronously setup discord role and channel
         const guildId = process.env.DISCORD_GUILD_ID
         const categoryId = process.env.DISCORD_TOURNAMENT_CATEGORY_ID
 
         if (guildId) {
-            // Using a background execution pattern without blocking the response
-            // We use an IIFE (Immediately Invoked Function Expression) here that we don't await
-            // so we can return the response to the user while finishing Discord tasks.
             ; (async () => {
                 try {
                     // Create Role, Voice, and Text Channel
@@ -71,6 +86,14 @@ export async function POST(request: Request) {
                             })
                             .eq('id', team.id)
                     }, 3, 2000)
+
+                    // Assign the newly created role to the captain
+                    try {
+                        await assignTeamRoleToMember(guildId, discordId, setupResponse.roleId)
+                        console.log(`Assigned team role ${setupResponse.roleId} to captain ${discordId}`)
+                    } catch (roleError) {
+                        console.error(`Failed to assign team role to captain ${discordId}:`, roleError)
+                    }
 
                 } catch (discordError) {
                     console.error('Error creating discord entities for team after retries:', discordError)

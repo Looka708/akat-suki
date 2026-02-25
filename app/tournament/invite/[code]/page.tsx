@@ -18,8 +18,6 @@ export default function InviteJoinPage() {
     const [loading, setLoading] = useState(false)
     const [steamId, setSteamId] = useState('')
     const [dotaName, setDotaName] = useState('')
-    const [mmr, setMmr] = useState('')
-    const [dotabuffUrl, setDotabuffUrl] = useState('')
     const [role1, setRole1] = useState('')
     const [role2, setRole2] = useState('')
     const [role3, setRole3] = useState('')
@@ -42,10 +40,6 @@ export default function InviteJoinPage() {
             setError('Please enter your Dota 2 in-game name.')
             return
         }
-        if (!mmr.trim() || isNaN(Number(mmr))) {
-            setError('Please enter a valid MMR number.')
-            return
-        }
 
         setLoading(true)
         setError(null)
@@ -58,8 +52,6 @@ export default function InviteJoinPage() {
                     inviteCode,
                     steamId,
                     dotaName,
-                    mmr,
-                    dotabuffUrl: dotabuffUrl || null,
                     role1,
                     role2,
                     role3,
@@ -118,6 +110,7 @@ export default function InviteJoinPage() {
                                         <label htmlFor="steamId" className={labelClass}>Steam ID (SteamID64) *</label>
                                         <input type="text" id="steamId" value={steamId} onChange={(e) => setSteamId(e.target.value)}
                                             placeholder="76561198031234567" className={inputClass} disabled={loading} />
+                                        <p className="mt-1 text-[9px] text-zinc-600 font-mono">Your OpenDota profile will be linked automatically</p>
                                     </div>
                                     <div>
                                         <label htmlFor="dotaName" className={labelClass}>Dota 2 Name *</label>
@@ -126,21 +119,7 @@ export default function InviteJoinPage() {
                                     </div>
                                 </div>
 
-                                {/* Row 2: MMR + Dotabuff */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="mmr" className={labelClass}>Solo MMR *</label>
-                                        <input type="number" id="mmr" value={mmr} onChange={(e) => setMmr(e.target.value)}
-                                            placeholder="e.g. 5500" className={inputClass} disabled={loading} />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="dotabuff" className={labelClass}>Dotabuff URL</label>
-                                        <input type="url" id="dotabuff" value={dotabuffUrl} onChange={(e) => setDotabuffUrl(e.target.value)}
-                                            placeholder="https://dotabuff.com/players/..." className={inputClass} disabled={loading} />
-                                    </div>
-                                </div>
-
-                                {/* Row 3: Role Preferences */}
+                                {/* Row 2: Role Preferences */}
                                 <div>
                                     <p className="text-xs font-semibold text-zinc-500 mb-3 uppercase tracking-widest">Role Preferences</p>
                                     <div className="grid grid-cols-3 gap-3">
@@ -168,7 +147,7 @@ export default function InviteJoinPage() {
                                     </div>
                                 </div>
 
-                                {/* Row 4: Ping + Notes */}
+                                {/* Row 3: Ping + Notes */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label htmlFor="ping" className={labelClass}>SEA Ping (ms)</label>
