@@ -3,6 +3,7 @@ import { discordBotFetch } from './discord-tournament'
 const GUILD_TEXT = 0
 const VIEW_CHANNEL = String(1 << 10) // 1024
 const SEND_MESSAGES = String(1 << 11) // 2048
+const CONNECT = String(1 << 20) // 1048576
 
 /**
  * Creates a temporary text channel for two teams to communicate during their match.
@@ -102,13 +103,13 @@ export async function createTeamRoleAndChannels(
             {
                 id: guildId, // @everyone
                 type: 0,
-                allow: "0",
-                deny: String(BigInt(VIEW_CHANNEL) | BigInt(SEND_MESSAGES))
+                allow: String(BigInt(VIEW_CHANNEL)),
+                deny: String(BigInt(SEND_MESSAGES) | BigInt(CONNECT))
             },
             {
                 id: roleId,
                 type: 0,
-                allow: String(BigInt(VIEW_CHANNEL) | BigInt(SEND_MESSAGES)),
+                allow: String(BigInt(VIEW_CHANNEL) | BigInt(SEND_MESSAGES) | BigInt(CONNECT)),
                 deny: "0"
             }
         ]

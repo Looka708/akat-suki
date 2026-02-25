@@ -64,12 +64,12 @@ export async function createTeamVoiceChannel(
     const CONNECT = String(1 << 20) // 1048576
 
     const permissionOverwrites = [
-        // @everyone gets denied View & Connect
+        // @everyone can view but cannot connect
         {
             id: guildId, // The @everyone role ID is the same as the guild ID
             type: 0, // 0 for role
-            allow: "0",
-            deny: String(BigInt(VIEW_CHANNEL) | BigInt(CONNECT))
+            allow: String(BigInt(VIEW_CHANNEL)),
+            deny: String(BigInt(CONNECT))
         },
         // The team role gets allowed View & Connect
         {
