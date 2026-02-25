@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import SafeAvatar from '@/components/SafeAvatar'
 
 interface Tournament {
     id: string
@@ -333,12 +334,8 @@ export default function TournamentHubPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                     {teams.map((team) => (
                         <div key={team.id} className="border border-white/10 bg-zinc-900/40 rounded-sm p-4 hover:border-white/20 transition-colors group text-center">
-                            <div className="w-14 h-14 rounded-sm bg-zinc-800 border border-white/10 overflow-hidden flex items-center justify-center mx-auto mb-3">
-                                {team.logo_url ? (
-                                    <img src={team.logo_url} alt={team.name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-zinc-500 font-bold font-rajdhani text-2xl">{team.name.charAt(0)}</span>
-                                )}
+                            <div className="w-14 h-14 bg-zinc-800 border-2 border-transparent hover:border-white/10 overflow-hidden flex items-center justify-center mx-auto mb-3">
+                                <SafeAvatar src={team.logo_url} alt={team.name} size={56} fallbackName={team.name} />
                             </div>
                             <h3 className="font-rajdhani font-bold text-white text-sm uppercase tracking-wide truncate group-hover:text-[#dc143c] transition-colors">{team.name}</h3>
                             <p className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest mt-1">{team.tournament_players.length}/5 Players</p>
@@ -346,14 +343,8 @@ export default function TournamentHubPage() {
                             {/* Player avatars row */}
                             <div className="flex justify-center gap-0.5 mt-3">
                                 {team.tournament_players.slice(0, 5).map((p) => (
-                                    <div key={p.id} className="w-5 h-5 rounded-full overflow-hidden border border-white/10">
-                                        {p.users?.avatar ? (
-                                            <img src={p.users.avatar} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-[6px] text-zinc-500 font-bold">
-                                                {p.users?.username?.charAt(0) || '?'}
-                                            </div>
-                                        )}
+                                    <div key={p.id} className="w-5 h-5 rounded-full overflow-hidden border border-white/10 bg-zinc-800">
+                                        <SafeAvatar src={p.users?.avatar} alt={p.users?.username || '?'} size={20} fallbackName={p.users?.username || '?'} />
                                     </div>
                                 ))}
                                 {Array.from({ length: Math.max(0, 5 - team.tournament_players.length) }).map((_, i) => (

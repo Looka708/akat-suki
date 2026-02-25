@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/components/AuthProvider'
 import Image from 'next/image'
+import SafeAvatar from '@/components/SafeAvatar'
 
 interface FreeAgent {
     id: string
@@ -266,11 +267,7 @@ export default function LFGPage() {
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-black rounded-full overflow-hidden border border-white/20">
-                                            {agent.users?.avatar ? (
-                                                <img src={agent.users.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">?</div>
-                                            )}
+                                            <SafeAvatar src={agent.users?.avatar} alt={agent.users?.username || '?'} size={48} fallbackName={agent.users?.username || '?'} />
                                         </div>
                                         <div>
                                             <p className="font-bold text-lg font-rajdhani tracking-wide group-hover:text-[#dc143c] transition-colors">{agent.users?.username || 'Unknown'}</p>

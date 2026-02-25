@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/components/AuthProvider'
+import SafeAvatar from '@/components/SafeAvatar'
 
 export default function TournamentDashboard() {
     const { isAuthenticated, user, isLoading: authLoading } = useAuth()
@@ -306,15 +307,12 @@ function PlayerRow({ player, team, isCaptain, onKick }: { player: any, team: any
         <div key={player.id} className="flex flex-col gap-3 p-4 bg-black/40 border border-zinc-800/50 rounded-lg group hover:border-red-600/30 transition-all">
             <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-zinc-800 rounded-full overflow-hidden border-2 border-zinc-700/50 shrink-0 relative">
-                    {dotaData?.player?.avatarfull ? (
-                        <Image src={dotaData.player.avatarfull} alt={player.users?.username} fill className="object-cover" sizes="48px" />
-                    ) : player.users?.avatar ? (
-                        <Image src={player.users.avatar} alt={player.users?.username} fill className="object-cover" sizes="48px" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-500 bg-zinc-900 font-bold uppercase">
-                            ?
-                        </div>
-                    )}
+                    <SafeAvatar
+                        src={dotaData?.player?.avatarfull || player.users?.avatar}
+                        alt={player.users?.username}
+                        size={48}
+                        fallbackName={player.users?.username}
+                    />
                 </div>
                 <div className="flex-1">
                     <div className="flex items-center gap-2">

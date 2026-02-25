@@ -108,6 +108,53 @@ export default function TournamentBracketManager({
         }
     }
 
+    const handleDropSwap = async (
+        sourceMatchId: string, sourceSlot: number, sourceTeamId: string,
+        targetMatchId: string, targetSlot: number, targetTeamId: string
+    ) => {
+        if (sourceMatchId === targetMatchId && sourceSlot === targetSlot) return; // Same slot
+        if (!confirm('Swap these two teams in the bracket?')) return;
+
+        setUpdating('swapping')
+        try {
+            const res = await fetch(`/api/tournaments/${tournamentId}/brackets/swap`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sourceMatchId, sourceSlot, sourceTeamId, targetMatchId, targetSlot, targetTeamId })
+            })
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || 'Failed to swap teams')
+            }
+            router.refresh()
+        } catch (err: any) {
+            alert(err.message)
+        } finally {
+            setUpdating(null)
+        }
+    }
+
+    const handleRemoveTeam = async (matchId: string, slot: number) => {
+        if (!confirm('Remove this team from the match slot?')) return;
+        setUpdating('removing')
+        try {
+            const res = await fetch(`/api/tournaments/${tournamentId}/brackets/remove-team`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ matchId, slot })
+            })
+            if (!res.ok) {
+                const data = await res.json()
+                throw new Error(data.error || 'Failed to remove team')
+            }
+            router.refresh()
+        } catch (err: any) {
+            alert(err.message)
+        } finally {
+            setUpdating(null)
+        }
+    }
+
     return (
         <div className="bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden p-6 mt-8">
             <h2 className="text-xl font-rajdhani font-bold text-white mb-6 flex items-center gap-3">
@@ -161,9 +208,32 @@ export default function TournamentBracketManager({
                                             {/* Teams */}
                                             <div className="flex flex-col gap-2 mb-3">
                                                 {/* Team 1 */}
-                                                <div className="flex justify-between items-center bg-white/5 p-2.5 rounded-sm text-sm">
-                                                    <span className={`font-mono truncate ${m.winner_id === m.team1_id ? 'text-green-400 font-bold' : isCompleted && m.team1_id ? 'text-red-400' : m.team1_id ? 'text-white' : 'text-gray-600'}`}>
+                                                <div
+                                                    draggable={!isCompleted}
+                                                    onDragStart={(e) => {
+                                                        e.dataTransfer.setData('sourceMatchId', m.id)
+                                                        e.dataTransfer.setData('sourceSlot', '1')
+                                                        e.dataTransfer.setData('sourceTeamId', m.team1_id || '')
+                                                    }}
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault()
+                                                        handleDropSwap(
+                                                            e.dataTransfer.getData('sourceMatchId'),
+                                                            parseInt(e.dataTransfer.getData('sourceSlot')),
+                                                            e.dataTransfer.getData('sourceTeamId'),
+                                                            m.id, 1, m.team1_id || ''
+                                                        )
+                                                    }}
+                                                    className={`group flex justify-between items-center p-2.5 rounded-sm text-sm transition-colors ${!isCompleted ? 'bg-white/5 cursor-grab active:cursor-grabbing hover:bg-white/10 hover:border-[#dc143c]/50 border border-transparent' : 'bg-white/5 border border-transparent'}`}
+                                                >
+                                                    <span className={`font-mono truncate flex items-center gap-2 flex-1 ${m.winner_id === m.team1_id ? 'text-green-400 font-bold' : isCompleted && m.team1_id ? 'text-red-400' : m.team1_id ? 'text-white' : 'text-gray-600'}`}>
                                                         {m.team1_id ? m.team1?.name || 'Unknown' : 'TBD'}
+                                                        {!isCompleted && m.team1_id && (
+                                                            <button onClick={(e) => { e.stopPropagation(); handleRemoveTeam(m.id, 1); }} className="text-zinc-500 hover:text-[#dc143c] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove Team">
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            </button>
+                                                        )}
                                                     </span>
                                                     {isCompleted ? (
                                                         <span className={`font-bold text-lg font-mono ml-2 ${m.winner_id === m.team1_id ? 'text-green-400' : 'text-red-400'}`}>{m.team1_score}</span>
@@ -171,7 +241,7 @@ export default function TournamentBracketManager({
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            className="w-12 bg-black border border-white/20 text-white rounded-[2px] px-2 py-0.5 text-center font-mono"
+                                                            className="w-12 bg-black border border-white/20 text-white rounded-[2px] px-2 py-0.5 text-center font-mono cursor-text"
                                                             value={scores[m.id]?.t1 ?? 0}
                                                             onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: parseInt(e.target.value) || 0, t2: prev[m.id]?.t2 ?? 0 } }))}
                                                         />
@@ -179,9 +249,32 @@ export default function TournamentBracketManager({
                                                 </div>
 
                                                 {/* Team 2 */}
-                                                <div className="flex justify-between items-center bg-white/5 p-2.5 rounded-sm text-sm">
-                                                    <span className={`font-mono truncate ${m.winner_id === m.team2_id ? 'text-green-400 font-bold' : isCompleted && m.team2_id ? 'text-red-400' : m.team2_id ? 'text-white' : 'text-gray-600'}`}>
+                                                <div
+                                                    draggable={!isCompleted}
+                                                    onDragStart={(e) => {
+                                                        e.dataTransfer.setData('sourceMatchId', m.id)
+                                                        e.dataTransfer.setData('sourceSlot', '2')
+                                                        e.dataTransfer.setData('sourceTeamId', m.team2_id || '')
+                                                    }}
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault()
+                                                        handleDropSwap(
+                                                            e.dataTransfer.getData('sourceMatchId'),
+                                                            parseInt(e.dataTransfer.getData('sourceSlot')),
+                                                            e.dataTransfer.getData('sourceTeamId'),
+                                                            m.id, 2, m.team2_id || ''
+                                                        )
+                                                    }}
+                                                    className={`group flex justify-between items-center p-2.5 rounded-sm text-sm transition-colors ${!isCompleted ? 'bg-white/5 cursor-grab active:cursor-grabbing hover:bg-white/10 hover:border-[#dc143c]/50 border border-transparent' : 'bg-white/5 border border-transparent'}`}
+                                                >
+                                                    <span className={`font-mono truncate flex items-center gap-2 flex-1 ${m.winner_id === m.team2_id ? 'text-green-400 font-bold' : isCompleted && m.team2_id ? 'text-red-400' : m.team2_id ? 'text-white' : 'text-gray-600'}`}>
                                                         {m.team2_id ? m.team2?.name || 'Unknown' : 'TBD'}
+                                                        {!isCompleted && m.team2_id && (
+                                                            <button onClick={(e) => { e.stopPropagation(); handleRemoveTeam(m.id, 2); }} className="text-zinc-500 hover:text-[#dc143c] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove Team">
+                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            </button>
+                                                        )}
                                                     </span>
                                                     {isCompleted ? (
                                                         <span className={`font-bold text-lg font-mono ml-2 ${m.winner_id === m.team2_id ? 'text-green-400' : 'text-red-400'}`}>{m.team2_score}</span>
@@ -189,7 +282,7 @@ export default function TournamentBracketManager({
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            className="w-12 bg-black border border-white/20 text-white rounded-[2px] px-2 py-0.5 text-center font-mono"
+                                                            className="w-12 bg-black border border-white/20 text-white rounded-[2px] px-2 py-0.5 text-center font-mono cursor-text"
                                                             value={scores[m.id]?.t2 ?? 0}
                                                             onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: prev[m.id]?.t1 ?? 0, t2: parseInt(e.target.value) || 0 } }))}
                                                         />
