@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPlayerSummaries, getMatchHistory } from '@/lib/dota-api'
+import { getPlayerSummaries, getMatchHistory, toAccountId32 } from '@/lib/dota-api'
 
 export async function GET(
     request: NextRequest,
@@ -14,9 +14,8 @@ export async function GET(
         }
 
         const player = players[0]
-        // Steam Community IDs are 64-bit. Some Dota APIs use 32-bit account IDs.
-        // Convert to 32-bit if needed: (BigInt(steamId) - 76561197960265728n).toString()
-        const accountId32 = (BigInt(steamId) - 76561197960265728n).toString()
+        // Use the centralized helper to handle both 64-bit SteamIDs and 32-bit friend codes
+        const accountId32 = toAccountId32(steamId)
 
         const history = await getMatchHistory(accountId32)
 

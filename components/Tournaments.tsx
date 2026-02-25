@@ -404,12 +404,18 @@ export default function Tournaments() {
                                                 SQUAD DASHBOARD
                                             </Link>
                                         </div>
-                                        <div className="mt-4">
+                                        <div className="mt-4 flex flex-col gap-3">
                                             <Link
                                                 href={`/tournament/${tournament.id}/leaderboard`}
                                                 className="block w-full py-4 bg-transparent border border-[#dc143c] text-[#dc143c] hover:bg-[#dc143c] hover:text-white text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
                                             >
                                                 VIEW TOURNAMENT LEADERBOARD
+                                            </Link>
+                                            <Link
+                                                href={`/tournament/${tournament.id}/brackets`}
+                                                className="block w-full py-4 bg-transparent border border-white/20 text-white hover:bg-white hover:text-black text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                            >
+                                                ⚔ VIEW BRACKETS
                                             </Link>
                                         </div>
 

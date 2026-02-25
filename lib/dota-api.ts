@@ -2,9 +2,13 @@ const OPENDOTA_API_BASE = 'https://api.opendota.com/api'
 
 /**
  * Converts a SteamID64 to a 32-bit Account ID used by Dota 2 APIs.
+ * If the provided ID is already a 32-bit ID (friend code), it is returned as is.
  */
 export function toAccountId32(steamId64: string): string {
-    return (BigInt(steamId64) - 76561197960265728n).toString()
+    if (steamId64.length === 17 && steamId64.startsWith('7656119')) {
+        return (BigInt(steamId64) - 76561197960265728n).toString()
+    }
+    return steamId64
 }
 
 /**
