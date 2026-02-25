@@ -233,6 +233,21 @@ export default function TournamentHubPage() {
                         </div>
                     </Link>
 
+                    {/* Group Stages */}
+                    <Link href={`/tournament/${tournamentId}/groups`}
+                        className="group border border-white/10 bg-zinc-900/40 rounded-sm p-6 hover:border-blue-500/30 transition-all hover:bg-blue-500/[0.03]">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-sm bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                                <span className="text-xl">📊</span>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-rajdhani font-bold text-white uppercase tracking-wide group-hover:text-blue-400 transition-colors">Group Stages</h3>
+                                <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Round Robin & Standings</p>
+                            </div>
+                            <span className="text-zinc-600 group-hover:text-blue-400 transition-colors text-xl">→</span>
+                        </div>
+                    </Link>
+
                     {/* Leaderboard */}
                     <Link href={`/tournament/${tournamentId}/leaderboard`}
                         className="group border border-white/10 bg-zinc-900/40 rounded-sm p-6 hover:border-yellow-500/30 transition-all hover:bg-yellow-500/[0.03]">

@@ -25,7 +25,7 @@ export async function GET(
         const { data: matches, error: mErr } = await supabaseAdmin
             .from('tournament_matches')
             .select(`
-                id, tournament_id, team1_id, team2_id, winner_id, team1_score, team2_score, round, state, created_at, scheduled_time,
+                id, tournament_id, team1_id, team2_id, winner_id, team1_score, team2_score, round, state, phase, group_id, match_format, created_at, scheduled_time,
                 team1:team1_id(id, name, logo_url),
                 team2:team2_id(id, name, logo_url),
                 winner:winner_id(name)
@@ -40,7 +40,7 @@ export async function GET(
         const { data: teams, error: teamsErr } = await supabaseAdmin
             .from('tournament_teams')
             .select(`
-                id, name, logo_url, captain_id,
+                id, name, logo_url, captain_id, group_id,
                 tournament_players (
                     id, user_id, steam_id,
                     users (

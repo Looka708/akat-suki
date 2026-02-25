@@ -4,6 +4,7 @@ import { Inter, Rajdhani } from 'next/font/google'
 import CustomCursor from '@/components/CustomCursor'
 import BackgroundEffects from '@/components/BackgroundEffects'
 import { AuthProvider } from '@/components/AuthProvider'
+import MiniTwitchPlayer from '@/components/MiniTwitchPlayer'
 
 const inter = Inter({
     subsets: ['latin'],
@@ -76,6 +77,7 @@ export default function RootLayout({
                 <AuthProvider>
                     <BackgroundEffects />
                     <CustomCursor />
+                    <MiniTwitchPlayer />
                     {children}
                 </AuthProvider>
             </body>

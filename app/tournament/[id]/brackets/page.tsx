@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import DoubleElimBracket from '@/components/DoubleElimBracket'
 
 interface Player {
     id: string
@@ -35,6 +36,8 @@ interface Match {
     team2_score: number
     round: number
     state: string
+    phase: string
+    match_format: string
     scheduled_time: string | null
     team1: { id: string; name: string; logo_url: string | null } | null
     team2: { id: string; name: string; logo_url: string | null } | null
@@ -200,8 +203,8 @@ export default function BracketsPage() {
                             <span className="text-[#dc143c] text-xs font-bold tracking-[0.5em] uppercase">{tournament.game}</span>
                             <span className="w-10 h-[1px] bg-[#dc143c]"></span>
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-rajdhani font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-white to-red-500 mb-2">
-                            {tournament.name}
+                        <h1 className="text-4xl md:text-5xl font-rajdhani font-black tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                            {tournament.name} <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-700">BRACKET</span>
                         </h1>
                         <p className="text-zinc-500 font-mono text-sm uppercase tracking-widest">
                             Tournament Brackets • {tournament.status?.toUpperCase()}
@@ -222,7 +225,9 @@ export default function BracketsPage() {
                 </div>
 
                 {/* Bracket Display */}
-                {matches.length === 0 ? (
+                {matches.some(m => m.phase === 'upper_bracket' || m.phase === 'lower_bracket') ? (
+                    <DoubleElimBracket matches={matches} teams={teams} />
+                ) : matches.length === 0 ? (
                     <div className="text-center py-32 border border-white/10 bg-white/[0.02] rounded-sm">
                         <div className="w-16 h-16 mx-auto mb-6 border-2 border-dashed border-zinc-700 rounded-full flex items-center justify-center">
                             <span className="text-zinc-600 text-2xl">⚔</span>
