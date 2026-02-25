@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
@@ -586,15 +587,15 @@ function PlayerRow({ player, isCaptain, dotaProfile, isLoading, onHover }: {
                 {hasSteam ? (
                     <a href={`https://www.opendota.com/players/${player.steam_id}`} target="_blank" rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()} className="relative shrink-0 group/avatar">
-                        <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-transparent group-hover/avatar:border-[#dc143c] transition-colors">
-                            {avatarUrl ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover" /> :
+                        <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-transparent group-hover/avatar:border-[#dc143c] transition-colors relative">
+                            {avatarUrl ? <Image src={avatarUrl} alt={username} fill className="object-cover" sizes="24px" /> :
                                 <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-[8px] text-zinc-500 font-bold">{username.charAt(0).toUpperCase()}</div>}
                         </div>
                         <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500 border-[1.5px] border-black"></div>
                     </a>
                 ) : (
-                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
-                        {avatarUrl ? <img src={avatarUrl} alt={username} className="w-full h-full object-cover" /> :
+                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0 relative">
+                        {avatarUrl ? <Image src={avatarUrl} alt={username} fill className="object-cover" sizes="24px" /> :
                             <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-[8px] text-zinc-500 font-bold">{username.charAt(0).toUpperCase()}</div>}
                     </div>
                 )}
@@ -616,7 +617,7 @@ function PlayerRow({ player, isCaptain, dotaProfile, isLoading, onHover }: {
                     ) : dotaProfile ? (
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                {dotaProfile.player?.avatarfull && <img src={dotaProfile.player.avatarfull} alt="" className="w-8 h-8 rounded-sm border border-white/10" />}
+                                {dotaProfile.player?.avatarfull && <div className="relative w-8 h-8 rounded-sm overflow-hidden border border-white/10"><Image src={dotaProfile.player.avatarfull} alt="" fill className="object-cover" sizes="32px" /></div>}
                                 <div>
                                     <p className="text-xs font-bold text-white font-rajdhani">{dotaProfile.player?.personaname || username}</p>
                                     {rankLabel && <p className="text-[9px] text-[#dc143c] font-bold uppercase">{rankLabel}</p>}

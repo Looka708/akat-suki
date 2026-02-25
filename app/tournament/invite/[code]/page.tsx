@@ -22,6 +22,7 @@ export default function InviteJoinPage() {
     const [role2, setRole2] = useState('')
     const [role3, setRole3] = useState('')
     const [ping, setPing] = useState('')
+    const [mmr, setMmr] = useState('')
     const [captainNotes, setCaptainNotes] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
@@ -56,6 +57,7 @@ export default function InviteJoinPage() {
                     role2,
                     role3,
                     ping,
+                    mmr,
                     captainNotes,
                 }),
             })
@@ -147,12 +149,17 @@ export default function InviteJoinPage() {
                                     </div>
                                 </div>
 
-                                {/* Row 3: Ping + Notes */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Row 3: Ping + Current MMR + Notes */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <label htmlFor="ping" className={labelClass}>SEA Ping (ms)</label>
                                         <input type="text" id="ping" value={ping} onChange={(e) => setPing(e.target.value)}
                                             placeholder="e.g. 80" className={inputClass} disabled={loading} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="mmr" className={labelClass}>Current MMR</label>
+                                        <input type="number" id="mmr" value={mmr} onChange={(e) => setMmr(e.target.value)}
+                                            placeholder="e.g. 4500" className={inputClass} disabled={loading} min="0" max="15000" />
                                     </div>
                                     <div>
                                         <label htmlFor="notes" className={labelClass}>Notes for Captain</label>

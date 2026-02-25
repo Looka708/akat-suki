@@ -179,6 +179,17 @@ export async function createTeam(name: string, captainId: string) {
         throw new Error('Team name is required')
     }
 
+    // Check if user is already a captain
+    const { data: existingCaptain } = await supabaseAdmin
+        .from('tournament_teams')
+        .select('id')
+        .eq('captain_id', captainId)
+        .single()
+
+    if (existingCaptain) {
+        throw new Error('You are already the captain of another team.')
+    }
+
     // Generate unique code, checking against existing
     let invite_code = generateInviteCode()
     let isUnique = false
@@ -275,6 +286,18 @@ export async function joinTeam(
 
     if (existing) {
         return existing
+    }
+
+    // Check if the user is a captain of ANY team
+    const { data: isCaptainData } = await supabaseAdmin
+        .from('tournament_teams')
+        .select('id')
+        .eq('captain_id', userId)
+        .single()
+
+    // If they are a captain, they can only join the team they created
+    if (isCaptainData && isCaptainData.id !== teamId) {
+        throw new Error('You are a team captain and cannot join another team.')
     }
 
     const { data, error } = await supabaseAdmin
@@ -432,13 +455,14 @@ export async function generateBracket(tournamentId: string) {
     const { data: teams, error: teamsErr } = await supabaseAdmin.from('tournament_teams')
         .select('*').eq('tournament_id', tournamentId)
 
-    if (teamsErr || !teams || teams.length < 2) {
-        throw new Error('Not enough teams to generate a bracket (min 2).')
+    if (teamsErr) {
+        throw new Error('Error fetching tournament teams.')
     }
 
-    // Find nearest power of 2 for bracket size (2, 4, 8, 16...)
+    // Find nearest power of 2 for bracket size based on max_slots allowing empty generations
     let bracketSize = 2;
-    while (bracketSize < teams.length) {
+    const targetSize = Math.max(tournament.max_slots || 2, teams ? teams.length : 0);
+    while (bracketSize < targetSize) {
         bracketSize *= 2;
     }
 

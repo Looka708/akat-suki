@@ -33,16 +33,10 @@ export default function CustomCursor() {
             }
         }
 
-        // Use a single throttled rAF loop
-        let lastFrame = 0
-        const animate = (timestamp: number) => {
-            // Throttle to ~30fps
-            if (timestamp - lastFrame > 33) {
-                lastFrame = timestamp
-                pos.outlineX += (pos.mouseX - pos.outlineX) * 0.15
-                pos.outlineY += (pos.mouseY - pos.outlineY) * 0.15
-                outline.style.transform = `translate3d(${pos.outlineX}px, ${pos.outlineY}px, 0) translate(-50%, -50%)`
-            }
+        const animate = () => {
+            pos.outlineX += (pos.mouseX - pos.outlineX) * 0.15
+            pos.outlineY += (pos.mouseY - pos.outlineY) * 0.15
+            outline.style.transform = `translate3d(${pos.outlineX}px, ${pos.outlineY}px, 0) translate(-50%, -50%)`
             rafRef.current = requestAnimationFrame(animate)
         }
 

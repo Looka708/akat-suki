@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { exchangeCodeForToken, getDiscordUser } from '@/lib/discord-auth'
+import { exchangeCodeForToken, getDiscordUser, getDiscordAvatarUrl } from '@/lib/discord-auth'
 import { createSession } from '@/lib/session'
 import { cookies } from 'next/headers'
 import { upsertUser } from '@/lib/db'
@@ -44,13 +44,14 @@ export async function GET(request: NextRequest) {
 
         // Get user info from Discord
         const discordUser = await getDiscordUser(tokenResponse.access_token)
+        const fullAvatarUrl = getDiscordAvatarUrl(discordUser.id, discordUser.avatar)
 
         // Create session
         await createSession({
             id: discordUser.id,
             username: discordUser.username,
             discriminator: discordUser.discriminator,
-            avatar: discordUser.avatar,
+            avatar: fullAvatarUrl,
             email: discordUser.email,
             accessToken: tokenResponse.access_token,
         })
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
             id: discordUser.id,
             username: discordUser.username,
             discriminator: discordUser.discriminator,
-            avatar: discordUser.avatar,
+            avatar: fullAvatarUrl,
             email: discordUser.email,
         })
 

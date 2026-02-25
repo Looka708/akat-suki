@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/components/AuthProvider'
@@ -304,11 +305,11 @@ function PlayerRow({ player, team, isCaptain, onKick }: { player: any, team: any
     return (
         <div key={player.id} className="flex flex-col gap-3 p-4 bg-black/40 border border-zinc-800/50 rounded-lg group hover:border-red-600/30 transition-all">
             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-zinc-800 rounded-full overflow-hidden border-2 border-zinc-700/50 shrink-0">
+                <div className="w-12 h-12 bg-zinc-800 rounded-full overflow-hidden border-2 border-zinc-700/50 shrink-0 relative">
                     {dotaData?.player?.avatarfull ? (
-                        <img src={dotaData.player.avatarfull} alt={player.users?.username} className="w-full h-full object-cover" />
+                        <Image src={dotaData.player.avatarfull} alt={player.users?.username} fill className="object-cover" sizes="48px" />
                     ) : player.users?.avatar ? (
-                        <img src={player.users.avatar} alt={player.users?.username} className="w-full h-full object-cover" />
+                        <Image src={player.users.avatar} alt={player.users?.username} fill className="object-cover" sizes="48px" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-zinc-500 bg-zinc-900 font-bold uppercase">
                             ?

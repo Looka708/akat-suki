@@ -1,13 +1,15 @@
 import Navbar from '@/components/Navbar'
 import Hero from '@/components/Hero'
 import Mission from '@/components/Mission'
-import Tournaments from '@/components/Tournaments'
-import OperationalExcellence from '@/components/OperationalExcellence'
-import PlayerRoster from '@/components/PlayerRoster'
-import JoinTeam from '@/components/JoinTeam'
-import Newsletter from '@/components/Newsletter'
-import Contact from '@/components/Contact'
-import Footer from '@/components/Footer'
+import dynamic from 'next/dynamic'
+
+const Tournaments = dynamic(() => import('@/components/Tournaments'))
+const OperationalExcellence = dynamic(() => import('@/components/OperationalExcellence'))
+const PlayerRoster = dynamic(() => import('@/components/PlayerRoster'))
+const JoinTeam = dynamic(() => import('@/components/JoinTeam'))
+const Newsletter = dynamic(() => import('@/components/Newsletter'))
+const Contact = dynamic(() => import('@/components/Contact'))
+const Footer = dynamic(() => import('@/components/Footer'))
 
 export default function Home() {
     return (
