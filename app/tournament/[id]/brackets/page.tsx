@@ -136,7 +136,7 @@ export default function BracketsPage() {
     const totalWidth = roundNumbers.length * (MATCH_WIDTH + ROUND_GAP + CONNECTOR_WIDTH) - ROUND_GAP
 
     // Calculate vertical position for a match in a given round
-    const getMatchY = useCallback((roundIdx: number, matchIdx: number, matchesInRound: number) => {
+    const getMatchY = useCallback((roundIdx: number, matchIdx: number, matchesInRound: number): number => {
         // For round 1, evenly space matches
         if (roundIdx === 0) {
             const totalSpace = totalHeight
