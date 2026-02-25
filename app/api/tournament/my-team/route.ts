@@ -29,6 +29,7 @@ export async function GET(request: Request) {
                         id,
                         user_id,
                         discord_id,
+                        steam_id,
                         joined_at,
                         users (
                             username,

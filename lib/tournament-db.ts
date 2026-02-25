@@ -458,6 +458,25 @@ export async function generateBracket(tournamentId: string) {
     const { error: insertErr } = await supabaseAdmin.from('tournament_matches').insert(matchesToInsert)
     if (insertErr) throw new Error('Failed to insert matches: ' + insertErr.message)
 
+    // 4. Auto-advance bye matches (round 1 matches where one team is null)
+    const { data: round1Matches } = await supabaseAdmin.from('tournament_matches')
+        .select('id, team1_id, team2_id')
+        .eq('tournament_id', tournamentId)
+        .eq('round', 1)
+        .order('created_at', { ascending: true })
+
+    if (round1Matches) {
+        for (const m of round1Matches) {
+            const isBye = (m.team1_id && !m.team2_id) || (!m.team1_id && m.team2_id)
+            if (isBye) {
+                const winnerId = m.team1_id || m.team2_id
+                const t1Score = m.team1_id ? 1 : 0
+                const t2Score = m.team2_id ? 1 : 0
+                await updateMatchScore(m.id, t1Score, t2Score, winnerId!)
+            }
+        }
+    }
+
     return { numRounds, matchesGenerated: matchesToInsert.length }
 }
 

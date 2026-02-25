@@ -229,6 +229,23 @@ export default function TournamentDashboard() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Steam Connection */}
+                        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-xl backdrop-blur-sm relative overflow-hidden">
+                            <h2 className="text-xl font-rajdhani font-bold mb-4 text-white uppercase tracking-wider flex items-center gap-3">
+                                <span className="w-4 h-1 bg-[#1b2838]"></span>
+                                Steam Connection
+                            </h2>
+                            <p className="text-xs text-zinc-500 font-mono mb-4">
+                                Link your Steam account for automated match scoring and Dota 2 profile stats.
+                            </p>
+                            <Link
+                                href="/tournament/connect-steam"
+                                className="block w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-center text-white text-xs font-rajdhani uppercase tracking-wider font-bold rounded transition-colors"
+                            >
+                                Manage Steam Link
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>

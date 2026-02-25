@@ -133,6 +133,9 @@ export default function Navbar() {
                                         <Link href="/apply" className="block px-4 py-2.5 text-[10px] text-gray-400 hover:text-white hover:bg-white/5 transition-colors font-bold tracking-widest">
                                             MY APPLICATIONS
                                         </Link>
+                                        <Link href="/tournament/connect-steam" className="block px-4 py-2.5 text-[10px] text-gray-400 hover:text-white hover:bg-white/5 transition-colors font-bold tracking-widest">
+                                            CONNECT STEAM
+                                        </Link>
                                         <button
                                             onClick={logout}
                                             className="w-full text-left px-4 py-2.5 text-[10px] text-red-500 hover:text-red-400 hover:bg-red-500/5 transition-colors font-bold tracking-widest border-t border-white/5"
