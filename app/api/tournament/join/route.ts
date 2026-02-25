@@ -12,7 +12,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { inviteCode, steamId } = body
+        const { inviteCode, steamId, mmr, dotabuffUrl, role1, role2, role3, ping, captainNotes, dotaName } = body
 
         if (!inviteCode) {
             return NextResponse.json({ error: 'Invite code is required.' }, { status: 400 })
@@ -27,7 +27,16 @@ export async function POST(request: Request) {
         // Add user as teammate
         const discordId = user.id // user.id here is the discord ID
 
-        const player = await joinTeam(team.id, user.id, discordId, steamId)
+        const player = await joinTeam(team.id, user.id, discordId, steamId, {
+            mmr: mmr ? parseInt(mmr) : 0,
+            dotabuff_url: dotabuffUrl || null,
+            role_1: role1 || '',
+            role_2: role2 || '',
+            role_3: role3 || '',
+            ping: ping || '',
+            captain_notes: captainNotes || '',
+            dota_name: dotaName || ''
+        })
 
         // Try Assigning Team Role in Discord if roles were successfully created
         const guildId = process.env.DISCORD_GUILD_ID

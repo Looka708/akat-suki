@@ -34,6 +34,14 @@ export interface TournamentPlayer {
     user_id: string
     discord_id: string | null
     steam_id: string | null
+    dota_name: string | null
+    mmr: number
+    dotabuff_url: string | null
+    role_1: string
+    role_2: string
+    role_3: string
+    ping: string
+    captain_notes: string
     joined_at: string
 }
 
@@ -241,7 +249,22 @@ export async function getTeamById(teamId: string) {
     return data as TournamentTeam | null
 }
 
-export async function joinTeam(teamId: string, userId: string, discordId: string | null, steamId?: string | null) {
+export async function joinTeam(
+    teamId: string,
+    userId: string,
+    discordId: string | null,
+    steamId?: string | null,
+    profileData?: {
+        mmr?: number
+        dotabuff_url?: string | null
+        role_1?: string
+        role_2?: string
+        role_3?: string
+        ping?: string
+        captain_notes?: string
+        dota_name?: string
+    }
+) {
     // Check if already in the team
     const { data: existing } = await supabaseAdmin
         .from('tournament_players')
@@ -260,7 +283,15 @@ export async function joinTeam(teamId: string, userId: string, discordId: string
             team_id: teamId,
             user_id: userId,
             discord_id: discordId,
-            steam_id: steamId || null
+            steam_id: steamId || null,
+            mmr: profileData?.mmr || 0,
+            dotabuff_url: profileData?.dotabuff_url || null,
+            role_1: profileData?.role_1 || '',
+            role_2: profileData?.role_2 || '',
+            role_3: profileData?.role_3 || '',
+            ping: profileData?.ping || '',
+            captain_notes: profileData?.captain_notes || '',
+            dota_name: profileData?.dota_name || ''
         })
         .select()
         .single()

@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/components/AuthProvider'
+
+const ROLES = ['Carry', 'Mid', 'Offlane', 'Soft Support', 'Hard Support']
 
 export default function InviteJoinPage() {
     const { isAuthenticated, login } = useAuth()
@@ -15,6 +17,14 @@ export default function InviteJoinPage() {
 
     const [loading, setLoading] = useState(false)
     const [steamId, setSteamId] = useState('')
+    const [dotaName, setDotaName] = useState('')
+    const [mmr, setMmr] = useState('')
+    const [dotabuffUrl, setDotabuffUrl] = useState('')
+    const [role1, setRole1] = useState('')
+    const [role2, setRole2] = useState('')
+    const [role3, setRole3] = useState('')
+    const [ping, setPing] = useState('')
+    const [captainNotes, setCaptainNotes] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
@@ -28,6 +38,14 @@ export default function InviteJoinPage() {
             setError('Steam ID is required to score matches automatically.')
             return
         }
+        if (!dotaName.trim()) {
+            setError('Please enter your Dota 2 in-game name.')
+            return
+        }
+        if (!mmr.trim() || isNaN(Number(mmr))) {
+            setError('Please enter a valid MMR number.')
+            return
+        }
 
         setLoading(true)
         setError(null)
@@ -36,7 +54,18 @@ export default function InviteJoinPage() {
             const res = await fetch('/api/tournament/join', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inviteCode, steamId }),
+                body: JSON.stringify({
+                    inviteCode,
+                    steamId,
+                    dotaName,
+                    mmr,
+                    dotabuffUrl: dotabuffUrl || null,
+                    role1,
+                    role2,
+                    role3,
+                    ping,
+                    captainNotes,
+                }),
             })
 
             const data = await res.json()
@@ -56,46 +85,106 @@ export default function InviteJoinPage() {
         }
     }
 
+    const inputClass = "w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-red-600 transition-all text-white font-mono text-sm"
+    const labelClass = "block text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-widest"
+    const selectClass = "w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-red-600 transition-all text-white text-sm appearance-none cursor-pointer"
+
     return (
         <main className="min-h-screen bg-black text-white selection:bg-red-500/30">
             <Navbar />
 
             <div className="pt-32 pb-20 px-6 mx-auto max-w-4xl min-h-[80vh] flex flex-col items-center justify-center">
-                <div className="w-full max-w-md relative">
+                <div className="w-full max-w-lg relative">
                     {/* Background effects */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-64 bg-red-600/10 blur-[100px] -z-10 rounded-full" />
 
                     {!success ? (
-                        <div className="bg-zinc-900/50 border border-zinc-800 p-8 md:p-12 rounded-xl backdrop-blur-sm relative overflow-hidden text-center">
+                        <div className="bg-zinc-900/50 border border-zinc-800 p-8 md:p-10 rounded-xl backdrop-blur-sm relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-900" />
 
-                            <h1 className="text-3xl font-rajdhani font-bold mb-4 uppercase tracking-wider text-white">
-                                You've Been Invited
-                            </h1>
-                            <p className="text-zinc-400 mb-8 font-inter">
-                                Join the team by accepting the invite!
-                            </p>
-
-                            <div className="mb-6 text-left">
-                                <label htmlFor="steamId" className="block text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-widest">
-                                    Dota 2 Steam ID (SteamID64) *Required
-                                </label>
-                                <input
-                                    type="text"
-                                    id="steamId"
-                                    value={steamId}
-                                    onChange={(e) => setSteamId(e.target.value)}
-                                    placeholder="e.g. 76561198031234567"
-                                    className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:border-red-600 transition-all text-white font-mono text-sm"
-                                    disabled={loading}
-                                />
-                                <p className="mt-2 text-[10px] text-zinc-600">
-                                    Required. Linking your Steam ID allows us to track your tournament stats and auto-score matches.
+                            <div className="text-center mb-8">
+                                <h1 className="text-3xl font-rajdhani font-bold uppercase tracking-wider text-white">
+                                    You've Been Invited
+                                </h1>
+                                <p className="text-zinc-400 mt-2 font-inter text-sm">
+                                    Fill in your Dota 2 profile to join the team
                                 </p>
                             </div>
 
+                            <div className="space-y-5 text-left">
+                                {/* Row 1: Steam ID + Dota Name */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="steamId" className={labelClass}>Steam ID (SteamID64) *</label>
+                                        <input type="text" id="steamId" value={steamId} onChange={(e) => setSteamId(e.target.value)}
+                                            placeholder="76561198031234567" className={inputClass} disabled={loading} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="dotaName" className={labelClass}>Dota 2 Name *</label>
+                                        <input type="text" id="dotaName" value={dotaName} onChange={(e) => setDotaName(e.target.value)}
+                                            placeholder="Your in-game name" className={inputClass} disabled={loading} />
+                                    </div>
+                                </div>
+
+                                {/* Row 2: MMR + Dotabuff */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="mmr" className={labelClass}>Solo MMR *</label>
+                                        <input type="number" id="mmr" value={mmr} onChange={(e) => setMmr(e.target.value)}
+                                            placeholder="e.g. 5500" className={inputClass} disabled={loading} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="dotabuff" className={labelClass}>Dotabuff URL</label>
+                                        <input type="url" id="dotabuff" value={dotabuffUrl} onChange={(e) => setDotabuffUrl(e.target.value)}
+                                            placeholder="https://dotabuff.com/players/..." className={inputClass} disabled={loading} />
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Role Preferences */}
+                                <div>
+                                    <p className="text-xs font-semibold text-zinc-500 mb-3 uppercase tracking-widest">Role Preferences</p>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="text-[9px] text-[#dc143c] font-mono font-bold block mb-1.5 tracking-wider">★★★★★ PRIMARY</label>
+                                            <select value={role1} onChange={(e) => setRole1(e.target.value)} className={selectClass} disabled={loading}>
+                                                <option value="">Select...</option>
+                                                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] text-green-500 font-mono font-bold block mb-1.5 tracking-wider">★★★★ SECONDARY</label>
+                                            <select value={role2} onChange={(e) => setRole2(e.target.value)} className={selectClass} disabled={loading}>
+                                                <option value="">Select...</option>
+                                                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] text-yellow-500 font-mono font-bold block mb-1.5 tracking-wider">★★★ TERTIARY</label>
+                                            <select value={role3} onChange={(e) => setRole3(e.target.value)} className={selectClass} disabled={loading}>
+                                                <option value="">Select...</option>
+                                                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Row 4: Ping + Notes */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="ping" className={labelClass}>SEA Ping (ms)</label>
+                                        <input type="text" id="ping" value={ping} onChange={(e) => setPing(e.target.value)}
+                                            placeholder="e.g. 80" className={inputClass} disabled={loading} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="notes" className={labelClass}>Notes for Captain</label>
+                                        <input type="text" id="notes" value={captainNotes} onChange={(e) => setCaptainNotes(e.target.value)}
+                                            placeholder="Any message..." className={inputClass} disabled={loading} />
+                                    </div>
+                                </div>
+                            </div>
+
                             {error && (
-                                <div className="p-4 mb-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm font-inter">
+                                <div className="p-4 mt-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm font-inter">
                                     {error}
                                 </div>
                             )}
@@ -103,14 +192,14 @@ export default function InviteJoinPage() {
                             <button
                                 onClick={handleJoin}
                                 disabled={loading}
-                                className="w-full px-8 py-4 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 text-white font-rajdhani font-bold tracking-wider uppercase transition-colors rounded-lg flex items-center justify-center"
+                                className="w-full mt-8 px-8 py-4 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 text-white font-rajdhani font-bold tracking-wider uppercase transition-colors rounded-lg flex items-center justify-center"
                             >
                                 {loading ? (
                                     <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                                 ) : !isAuthenticated ? (
                                     <span>Login to Join</span>
                                 ) : (
-                                    <span>Accept Invite</span>
+                                    <span>Accept Invite & Join Team</span>
                                 )}
                             </button>
                         </div>
