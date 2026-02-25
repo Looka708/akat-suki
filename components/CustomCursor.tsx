@@ -1,98 +1,65 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 export default function CustomCursor() {
     const dotRef = useRef<HTMLDivElement>(null)
     const outlineRef = useRef<HTMLDivElement>(null)
-    const [isHovering, setIsHovering] = useState(false)
-    const [isClicked, setIsClicked] = useState(false)
+    const posRef = useRef({ mouseX: 0, mouseY: 0, outlineX: 0, outlineY: 0 })
+    const rafRef = useRef<number>(0)
+    const isVisibleRef = useRef(false)
 
     useEffect(() => {
+        // Only show custom cursor on desktop with pointer device
+        if (typeof window === 'undefined') return
+        const hasPointer = window.matchMedia('(pointer: fine)').matches
+        if (!hasPointer) return
+
         const dot = dotRef.current
         const outline = outlineRef.current
         if (!dot || !outline) return
 
-        let mouseX = 0
-        let mouseY = 0
-        let outlineX = 0
-        let outlineY = 0
+        const pos = posRef.current
 
         const moveMouse = (e: MouseEvent) => {
-            mouseX = e.clientX
-            mouseY = e.clientY
+            pos.mouseX = e.clientX
+            pos.mouseY = e.clientY
+            dot.style.transform = `translate3d(${pos.mouseX}px, ${pos.mouseY}px, 0) translate(-50%, -50%)`
 
-            // Immediate update for dot with centering
-            dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`
-
-            // Ensure visible when moving
-            dot.style.opacity = '1'
-            outline.style.opacity = '1'
-        }
-
-        const animate = () => {
-            // Easing for outline (delayed follow effect)
-            const easing = 0.15
-            outlineX += (mouseX - outlineX) * easing
-            outlineY += (mouseY - outlineY) * easing
-
-            if (outline) {
-                // Centering for outline
-                outline.style.transform = `translate3d(${outlineX}px, ${outlineY}px, 0) translate(-50%, -50%)`
+            if (!isVisibleRef.current) {
+                isVisibleRef.current = true
+                dot.style.opacity = '1'
+                outline.style.opacity = '1'
             }
-
-            requestAnimationFrame(animate)
         }
 
-        const handleMouseLeave = () => {
+        // Use a single throttled rAF loop
+        let lastFrame = 0
+        const animate = (timestamp: number) => {
+            // Throttle to ~30fps
+            if (timestamp - lastFrame > 33) {
+                lastFrame = timestamp
+                pos.outlineX += (pos.mouseX - pos.outlineX) * 0.15
+                pos.outlineY += (pos.mouseY - pos.outlineY) * 0.15
+                outline.style.transform = `translate3d(${pos.outlineX}px, ${pos.outlineY}px, 0) translate(-50%, -50%)`
+            }
+            rafRef.current = requestAnimationFrame(animate)
+        }
+
+        const handleLeave = () => {
+            isVisibleRef.current = false
             dot.style.opacity = '0'
             outline.style.opacity = '0'
         }
 
-        const handleMouseEnter = () => {
-            dot.style.opacity = '1'
-            outline.style.opacity = '1'
-        }
-
-        // Handle hover state using event delegation
-        const handleMouseOver = (e: MouseEvent) => {
-            const target = e.target as HTMLElement
-            const isInteractive = target.closest('a, button, input, select, .tilt-card, [role="button"]')
-            if (isInteractive) {
-                setIsHovering(true)
-            }
-        }
-
-        const handleMouseOut = (e: MouseEvent) => {
-            const target = e.target as HTMLElement
-            const isInteractive = target.closest('a, button, input, select, .tilt-card, [role="button"]')
-            if (isInteractive) {
-                setIsHovering(false)
-            }
-        }
-
-        const handleMouseDown = () => setIsClicked(true)
-        const handleMouseUp = () => setIsClicked(false)
-
-        window.addEventListener('mousemove', moveMouse)
-        window.addEventListener('mouseover', handleMouseOver)
-        window.addEventListener('mouseout', handleMouseOut)
-        window.addEventListener('mousedown', handleMouseDown)
-        window.addEventListener('mouseup', handleMouseUp)
-        window.addEventListener('mouseleave', handleMouseLeave)
-        window.addEventListener('mouseenter', handleMouseEnter)
-
-        const animationId = requestAnimationFrame(animate)
+        window.addEventListener('mousemove', moveMouse, { passive: true })
+        document.addEventListener('mouseleave', handleLeave)
+        rafRef.current = requestAnimationFrame(animate)
 
         return () => {
             window.removeEventListener('mousemove', moveMouse)
-            window.removeEventListener('mouseover', handleMouseOver)
-            window.removeEventListener('mouseout', handleMouseOut)
-            window.removeEventListener('mousedown', handleMouseDown)
-            window.removeEventListener('mouseup', handleMouseUp)
-            window.removeEventListener('mouseleave', handleMouseLeave)
-            window.removeEventListener('mouseenter', handleMouseEnter)
-            cancelAnimationFrame(animationId)
+            document.removeEventListener('mouseleave', handleLeave)
+            cancelAnimationFrame(rafRef.current)
         }
     }, [])
 
@@ -100,24 +67,14 @@ export default function CustomCursor() {
         <>
             <div
                 ref={dotRef}
-                className={`cursor-dot hidden md:block ${isClicked ? 'scale-75' : ''}`}
-                style={{
-                    backgroundColor: isHovering ? '#dc143c' : 'white',
-                    transition: 'background-color 0.2s, transform 0.1s',
-                }}
+                className="cursor-dot hidden md:block"
+                style={{ opacity: 0, transition: 'opacity 0.15s' }}
             />
             <div
                 ref={outlineRef}
                 className="cursor-outline hidden md:block"
-                style={{
-                    width: isHovering ? '48px' : '32px',
-                    height: isHovering ? '48px' : '32px',
-                    borderColor: isHovering ? '#dc143c' : isClicked ? 'white' : 'rgba(255,255,255,0.2)',
-                    backgroundColor: isClicked ? 'rgba(220, 20, 60, 0.1)' : 'transparent',
-                    transition: 'width 0.2s, height 0.2s, border-color 0.2s, background-color 0.2s',
-                }}
+                style={{ opacity: 0, transition: 'opacity 0.15s' }}
             />
         </>
     )
 }
-

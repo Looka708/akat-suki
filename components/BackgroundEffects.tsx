@@ -1,156 +1,127 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 
 export default function BackgroundEffects() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
+    const animationRef = useRef<number>(0)
+    const isVisibleRef = useRef(true)
 
-    useEffect(() => {
+    const initCanvas = useCallback(() => {
         const canvas = canvasRef.current
         if (!canvas) return
 
-        const ctx = canvas.getContext('2d')
+        const ctx = canvas.getContext('2d', { alpha: true })
         if (!ctx) return
 
-        // Set canvas size
         const resizeCanvas = () => {
-            canvas.width = window.innerWidth
-            canvas.height = window.innerHeight
+            const dpr = Math.min(window.devicePixelRatio, 1.5) // Cap DPR for performance
+            canvas.width = window.innerWidth * dpr
+            canvas.height = window.innerHeight * dpr
+            canvas.style.width = `${window.innerWidth}px`
+            canvas.style.height = `${window.innerHeight}px`
+            ctx.scale(dpr, dpr)
         }
         resizeCanvas()
-        window.addEventListener('resize', resizeCanvas)
 
-        // Particle class for red lines
-        class Particle {
-            x: number
-            y: number
-            speed: number
-            length: number
-            opacity: number
-            width: number
+        let resizeTimer: ReturnType<typeof setTimeout>
+        const debouncedResize = () => {
+            clearTimeout(resizeTimer)
+            resizeTimer = setTimeout(resizeCanvas, 200)
+        }
+        window.addEventListener('resize', debouncedResize, { passive: true })
 
-            constructor() {
-                this.x = Math.random() * canvas!.width
-                this.y = canvas!.height + Math.random() * 100
-                this.speed = 1 + Math.random() * 3
-                this.length = 20 + Math.random() * 80
-                this.opacity = 0.3 + Math.random() * 0.7
-                this.width = 1 + Math.random() * 2
+        // Fewer particles for better performance
+        const PARTICLE_COUNT = 12
+        const particles: { x: number; y: number; speed: number; length: number; opacity: number; width: number }[] = []
+        const w = window.innerWidth
+        const h = window.innerHeight
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push({
+                x: Math.random() * w,
+                y: h + Math.random() * 100,
+                speed: 0.5 + Math.random() * 1.5,
+                length: 30 + Math.random() * 60,
+                opacity: 0.15 + Math.random() * 0.4,
+                width: 1 + Math.random(),
+            })
+        }
+
+        let lastTime = 0
+        const TARGET_FPS = 30 // Cap at 30fps instead of 60
+        const FRAME_TIME = 1000 / TARGET_FPS
+
+        const animate = (timestamp: number) => {
+            if (!isVisibleRef.current) {
+                animationRef.current = requestAnimationFrame(animate)
+                return
             }
 
-            update() {
-                this.y -= this.speed
-
-                // Reset when particle goes off screen (Top)
-                if (this.y + this.length < 0) {
-                    this.y = canvas!.height + Math.random() * 100
-                    this.x = Math.random() * canvas!.width
-                    this.speed = 1 + Math.random() * 3
-                    this.length = 20 + Math.random() * 80
-                    this.opacity = 0.3 + Math.random() * 0.7
-                }
-
-                // Reset when particle goes off screen (Bottom)
-                if (this.y > canvas!.height + 200) {
-                    this.y = -this.length - Math.random() * 100
-                    this.x = Math.random() * canvas!.width
-                }
+            const delta = timestamp - lastTime
+            if (delta < FRAME_TIME) {
+                animationRef.current = requestAnimationFrame(animate)
+                return
             }
+            lastTime = timestamp
 
+            const cw = window.innerWidth
+            const ch = window.innerHeight
+            ctx.clearRect(0, 0, cw, ch)
 
-            draw() {
-                if (!ctx || !canvas) return
+            for (const p of particles) {
+                p.y -= p.speed
+                if (p.y + p.length < 0) {
+                    p.y = ch + Math.random() * 50
+                    p.x = Math.random() * cw
+                }
 
-                const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y - this.length)
-                gradient.addColorStop(0, `rgba(220, 20, 60, 0)`)
-                gradient.addColorStop(0.5, `rgba(220, 20, 60, ${this.opacity})`)
-                gradient.addColorStop(1, `rgba(255, 50, 100, ${this.opacity * 0.5})`)
-
-                ctx.strokeStyle = gradient
-                ctx.lineWidth = this.width
+                ctx.strokeStyle = `rgba(220, 20, 60, ${p.opacity})`
+                ctx.lineWidth = p.width
                 ctx.beginPath()
-                ctx.moveTo(this.x, this.y)
-                ctx.lineTo(this.x, this.y - this.length)
+                ctx.moveTo(p.x, p.y)
+                ctx.lineTo(p.x, p.y - p.length)
                 ctx.stroke()
             }
+
+            animationRef.current = requestAnimationFrame(animate)
         }
 
-        // Create particles
-        const particles: Particle[] = []
-        const particleCount = 30
+        animationRef.current = requestAnimationFrame(animate)
 
-        for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle())
+        // Pause when tab is not visible
+        const handleVisibility = () => {
+            isVisibleRef.current = !document.hidden
         }
-
-        // Scroll tracking
-        let lastScrollY = window.scrollY
-        let scrollVelocity = 0
-        let targetScrollVelocity = 0
-
-        const handleScroll = () => {
-            const currentScrollY = window.scrollY
-            targetScrollVelocity = currentScrollY - lastScrollY
-            lastScrollY = currentScrollY
-        }
-        window.addEventListener('scroll', handleScroll, { passive: true })
-
-        // Animation loop
-        let animationFrameId: number
-
-        const animate = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-            // Smooth scroll velocity
-            scrollVelocity += (targetScrollVelocity - scrollVelocity) * 0.1
-            targetScrollVelocity *= 0.9 // Friction for the target
-
-            particles.forEach((particle) => {
-                // Apply scroll velocity to particle movement
-                // When scrolling down (positive velocity), lines move UP faster
-                particle.y -= scrollVelocity * 0.5
-                particle.update()
-                particle.draw()
-            })
-
-            animationFrameId = requestAnimationFrame(animate)
-        }
-
-        animate()
+        document.addEventListener('visibilitychange', handleVisibility)
 
         return () => {
-            window.removeEventListener('resize', resizeCanvas)
-            window.removeEventListener('scroll', handleScroll)
-            cancelAnimationFrame(animationFrameId)
+            window.removeEventListener('resize', debouncedResize)
+            document.removeEventListener('visibilitychange', handleVisibility)
+            cancelAnimationFrame(animationRef.current)
+            clearTimeout(resizeTimer)
         }
-
     }, [])
+
+    useEffect(() => {
+        const cleanup = initCanvas()
+        return cleanup
+    }, [initCanvas])
 
     return (
         <>
-            {/* Red Gradient Background */}
+            {/* Static gradients — no blur, just opacity for cheaper GPU rendering */}
             <div className="fixed inset-0 pointer-events-none z-0">
-                {/* Radial gradients */}
-                <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-[#dc143c] rounded-full blur-[150px] opacity-10 animate-pulse-slow"></div>
-                <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#dc143c] rounded-full blur-[120px] opacity-15 animate-pulse-slower"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-radial from-[#dc143c]/5 to-transparent rounded-full blur-[100px]"></div>
-
-                {/* Vertical gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black opacity-60"></div>
-
-                {/* Diagonal gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#dc143c]/5 via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-[#dc143c]/[0.03] via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#dc143c]/[0.02] via-transparent to-transparent"></div>
             </div>
 
-            {/* Animated Red Lines Canvas */}
+            {/* Canvas for animated lines */}
             <canvas
                 ref={canvasRef}
                 className="fixed inset-0 pointer-events-none z-[1]"
                 style={{ mixBlendMode: 'screen' }}
             />
-
-            {/* Grain Overlay */}
-            <div className="grain"></div>
         </>
     )
 }

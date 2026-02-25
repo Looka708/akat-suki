@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import anime from 'animejs'
 import { useAuth } from './AuthProvider'
 import { DiscordLoginButton } from './DiscordLoginButton'
 import { UserAvatar } from './UserAvatar'
@@ -17,7 +16,7 @@ export default function Navbar() {
             setScrolled(window.scrollY > 50)
         }
 
-        window.addEventListener('scroll', handleScroll)
+        window.addEventListener('scroll', handleScroll, { passive: true })
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
@@ -40,20 +39,6 @@ export default function Navbar() {
         return () => {
             window.removeEventListener('keydown', handleEscape)
             document.body.style.overflow = 'unset'
-        }
-    }, [mobileMenuOpen])
-
-    useEffect(() => {
-        // Animate menu items when menu opens
-        if (mobileMenuOpen) {
-            anime({
-                targets: '.mobile-menu-item',
-                translateX: [-50, 0],
-                opacity: [0, 1],
-                duration: 600,
-                delay: anime.stagger(100),
-                easing: 'easeOutQuad',
-            })
         }
     }, [mobileMenuOpen])
 

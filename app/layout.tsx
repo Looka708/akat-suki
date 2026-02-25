@@ -1,8 +1,23 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
+import { Inter, Rajdhani } from 'next/font/google'
 import CustomCursor from '@/components/CustomCursor'
 import BackgroundEffects from '@/components/BackgroundEffects'
 import { AuthProvider } from '@/components/AuthProvider'
+
+const inter = Inter({
+    subsets: ['latin'],
+    weight: ['300', '400', '500', '600'],
+    display: 'swap',
+    variable: '--font-inter',
+})
+
+const rajdhani = Rajdhani({
+    subsets: ['latin'],
+    weight: ['500', '600', '700'],
+    display: 'swap',
+    variable: '--font-rajdhani',
+})
 
 export const viewport: Viewport = {
     themeColor: '#dc143c',
@@ -56,7 +71,7 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en">
+        <html lang="en" className={`${inter.variable} ${rajdhani.variable}`}>
             <body>
                 <AuthProvider>
                     <BackgroundEffects />
