@@ -138,6 +138,41 @@ export async function POST(
 
         const updatedMatch = await updateMatchScore(matchId, team1Score, team2Score, winnerId)
 
+        // Notify players of the result
+        try {
+            const { data: matchInfo } = await supabaseAdmin
+                .from('tournament_matches')
+                .select('tournament_id, round, team1:team1_id(name), team2:team2_id(name), winner:winner_id(name)')
+                .eq('id', matchId)
+                .single()
+
+            if (matchInfo) {
+                const allTeamIds = [dbMatch.team1_id, dbMatch.team2_id].filter(Boolean) as string[]
+                const { data: players } = await supabaseAdmin
+                    .from('tournament_players')
+                    .select('user_id')
+                    .in('team_id', allTeamIds)
+
+                if (players && players.length > 0) {
+                    const t1 = (matchInfo.team1 as any)?.name || 'Team 1'
+                    const t2 = (matchInfo.team2 as any)?.name || 'Team 2'
+                    const winner = (matchInfo.winner as any)?.name || 'Unknown'
+
+                    const notifications = players.map(p => ({
+                        user_id: p.user_id,
+                        type: 'match_result',
+                        title: 'Match Result Verified',
+                        message: `${t1} vs ${t2} — ${winner} wins (${team1Score}-${team2Score}). Verified via OpenDota.`,
+                        link: `/tournament/matches/${matchId}`
+                    }))
+
+                    await supabaseAdmin.from('notifications').insert(notifications)
+                }
+            }
+        } catch (notifErr) {
+            console.error('Non-critical: failed to send result notifications:', notifErr)
+        }
+
         return NextResponse.json({ success: true, match: updatedMatch, winnerId })
     } catch (error: any) {
         console.error('Failed to verify match:', error)

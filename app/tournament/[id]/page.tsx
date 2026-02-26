@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SafeAvatar from '@/components/SafeAvatar'
+import ActivityFeed from '@/components/ActivityFeed'
 
 interface Tournament {
     id: string
@@ -37,6 +38,8 @@ interface Match {
     winner: { name: string } | null
     team1_score: number
     team2_score: number
+    scheduled_time: string | null
+    created_at: string
 }
 
 export default function TournamentHubPage() {
@@ -366,6 +369,11 @@ export default function TournamentHubPage() {
                         </div>
                     ))}
                 </div>
+            </div>
+
+            {/* Activity Feed */}
+            <div className="max-w-6xl mx-auto px-6">
+                <ActivityFeed matches={matches as any} />
             </div>
 
             <Footer />

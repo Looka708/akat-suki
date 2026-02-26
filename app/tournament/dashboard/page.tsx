@@ -84,13 +84,47 @@ export default function TournamentDashboard() {
 
             <div className="pt-32 pb-20 px-6 mx-auto max-w-6xl min-h-[80vh]">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-                    <div>
-                        <h1 className="text-4xl md:text-5xl font-rajdhani font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                            {team.name}
-                        </h1>
-                        <p className="text-zinc-400 mt-2 font-inter">
-                            Dota 2 Tournament Team Dashboard
-                        </p>
+                    <div className="flex items-center gap-4">
+                        {/* Team Logo */}
+                        <div className="relative group shrink-0">
+                            <div className="w-16 h-16 rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden flex items-center justify-center">
+                                {team.logo_url ? (
+                                    <img src={team.logo_url} alt={team.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-zinc-600 font-rajdhani font-bold text-2xl">{team.name?.charAt(0)}</span>
+                                )}
+                            </div>
+                            {isCaptain && (
+                                <label className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-lg">
+                                    <span className="text-[8px] text-white font-bold uppercase tracking-widest">Change</span>
+                                    <input
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp,image/gif"
+                                        className="sr-only"
+                                        onChange={async (e) => {
+                                            const f = e.target.files?.[0]
+                                            if (!f) return
+                                            const formData = new FormData()
+                                            formData.append('logo', f)
+                                            formData.append('teamId', team.id)
+                                            try {
+                                                const res = await fetch('/api/tournament/upload-logo', { method: 'POST', body: formData })
+                                                if (res.ok) window.location.reload()
+                                                else alert('Upload failed')
+                                            } catch { alert('Upload failed') }
+                                        }}
+                                    />
+                                </label>
+                            )}
+                        </div>
+                        <div>
+                            <h1 className="text-4xl md:text-5xl font-rajdhani font-bold uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                {team.name}
+                            </h1>
+                            <p className="text-zinc-400 mt-2 font-inter">
+                                Dota 2 Tournament Team Dashboard
+                            </p>
+                        </div>
                     </div>
                     {isCaptain && (
                         <div className="flex flex-col gap-2 relative">

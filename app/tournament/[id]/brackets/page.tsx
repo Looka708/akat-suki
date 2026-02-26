@@ -583,7 +583,8 @@ function PlayerRow({ player, isCaptain, dotaProfile, isLoading, onHover }: {
     player: Player; isCaptain: boolean; dotaProfile: any; isLoading: boolean; onHover: () => void
 }) {
     const [showTooltip, setShowTooltip] = useState(false)
-    const avatarUrl = player.users?.avatar || null
+    // Prefer OpenDota/Steam avatar over Discord avatar
+    const avatarUrl = dotaProfile?.player?.avatarfull || player.users?.avatar || null
     const username = player.users?.username || 'Unknown'
     const hasSteam = !!player.steam_id
 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth } from './AuthProvider'
 import { DiscordLoginButton } from './DiscordLoginButton'
 import { UserAvatar } from './UserAvatar'
+import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false)
@@ -102,6 +103,7 @@ export default function Navbar() {
                                         ADMIN PANEL
                                     </Link>
                                 )}
+                                <NotificationBell />
                                 <div className="group relative">
                                     <UserAvatar size="sm" className="cursor-pointer" />
                                     {/* Dropdown menu */}

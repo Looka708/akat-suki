@@ -80,22 +80,42 @@ export async function moveUserToVoiceChannel(guildId: string, userId: string, ch
 /**
  * Auto-generates a Discord Role, Text Channel, and Voice channel for a Team.
  * Requires the Discord Bot to have Manages Roles and Manage Channels permissions.
+ * If logoUrl is provided (team logo), it is set as the Discord role icon (requires Boost Level 2+).
  */
 export async function createTeamRoleAndChannels(
     guildId: string,
     teamName: string,
-    categoryId?: string // Optional category ID to nest channels under
+    categoryId?: string,
+    logoUrl?: string | null
 ) {
     try {
+        // Prepare role body
+        const roleBody: any = {
+            name: teamName,
+            color: 0xDC143C, // Crimson
+            hoist: false,
+            mentionable: true
+        }
+
+        // If team logo exists, fetch it and convert to base64 for Discord role icon
+        if (logoUrl) {
+            try {
+                const imgRes = await fetch(logoUrl)
+                if (imgRes.ok) {
+                    const arrayBuf = await imgRes.arrayBuffer()
+                    const base64 = Buffer.from(arrayBuf).toString('base64')
+                    const contentType = imgRes.headers.get('content-type') || 'image/png'
+                    roleBody.icon = `data:${contentType};base64,${base64}`
+                }
+            } catch (iconErr) {
+                console.error('Non-critical: Could not set role icon (guild may not have Boost Level 2+):', iconErr)
+            }
+        }
+
         // 1. Create Role
         const roleData = await discordBotFetch(`/guilds/${guildId}/roles`, {
             method: 'POST',
-            body: JSON.stringify({
-                name: teamName,
-                color: 0xDC143C, // Crimson
-                hoist: false,
-                mentionable: true
-            })
+            body: JSON.stringify(roleBody)
         })
         const roleId = roleData.id
 

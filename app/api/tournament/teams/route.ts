@@ -71,9 +71,19 @@ export async function POST(request: Request) {
         if (guildId) {
             ; (async () => {
                 try {
-                    // Create Role, Voice, and Text Channel
+                    // Wait a moment for the logo upload to potentially complete
+                    await wait(3000)
+
+                    // Fetch the logo URL (may have been uploaded by now)
+                    const { data: freshTeam } = await supabaseAdmin
+                        .from('tournament_teams')
+                        .select('logo_url')
+                        .eq('id', team.id)
+                        .single()
+
+                    // Create Role, Voice, and Text Channel (with logo as role icon)
                     const setupResponse = await retry(async () => {
-                        return await createTeamRoleAndChannels(guildId, team.name, categoryId)
+                        return await createTeamRoleAndChannels(guildId, team.name, categoryId, freshTeam?.logo_url)
                     }, 3, 2000)
 
                     // Update DB with the generated IDs

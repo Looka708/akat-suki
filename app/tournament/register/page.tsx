@@ -21,6 +21,8 @@ export default function RegisterTournamentPage() {
     const [ping, setPing] = useState('')
     const [mmr, setMmr] = useState('')
     const [captainNotes, setCaptainNotes] = useState('')
+    const [logoFile, setLogoFile] = useState<File | null>(null)
+    const [logoPreview, setLogoPreview] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successTeam, setSuccessTeam] = useState<any | null>(null)
@@ -71,6 +73,21 @@ export default function RegisterTournamentPage() {
                 throw new Error(data.error || 'Failed to create team')
             }
 
+            // Upload logo if selected
+            if (logoFile && data.team?.id) {
+                try {
+                    const formData = new FormData()
+                    formData.append('logo', logoFile)
+                    formData.append('teamId', data.team.id)
+                    await fetch('/api/tournament/upload-logo', {
+                        method: 'POST',
+                        body: formData
+                    })
+                } catch (logoErr) {
+                    console.error('Logo upload failed (non-critical):', logoErr)
+                }
+            }
+
             setSuccessTeam(data.team)
         } catch (err: any) {
             setError(err.message)
@@ -111,6 +128,36 @@ export default function RegisterTournamentPage() {
                                     <label htmlFor="teamName" className={labelClass}>Team Name *</label>
                                     <input type="text" id="teamName" value={teamName} onChange={(e) => setTeamName(e.target.value)}
                                         placeholder="Enter your team name" className={inputClass} required disabled={loading} />
+                                </div>
+
+                                {/* Team Logo */}
+                                <div>
+                                    <label className={labelClass}>Team Logo</label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                                            {logoPreview ? (
+                                                <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-zinc-600 text-2xl">🎮</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <input
+                                                type="file"
+                                                accept="image/png,image/jpeg,image/webp,image/gif"
+                                                onChange={(e) => {
+                                                    const f = e.target.files?.[0]
+                                                    if (f) {
+                                                        setLogoFile(f)
+                                                        setLogoPreview(URL.createObjectURL(f))
+                                                    }
+                                                }}
+                                                className="block w-full text-sm text-zinc-500 font-mono file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-zinc-700 file:text-xs file:font-bold file:bg-zinc-900 file:text-white hover:file:bg-zinc-800 file:cursor-pointer file:uppercase file:tracking-widest"
+                                                disabled={loading}
+                                            />
+                                            <p className="mt-1 text-[9px] text-zinc-600 font-mono">PNG, JPEG, WebP or GIF • Max 2MB • Used as Discord role icon</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Divider */}
