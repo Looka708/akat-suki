@@ -467,7 +467,7 @@ export async function applyToTournament(teamId: string, tournamentId: string) {
     return data
 }
 
-export async function generateBracket(tournamentId: string) {
+export async function generateBracket(tournamentId: string, overrideSize?: number) {
     // 1. Get tournament info & teams
     const { data: tournament, error: tErr } = await supabaseAdmin.from('tournaments')
         .select('*').eq('id', tournamentId).single()
@@ -480,11 +480,19 @@ export async function generateBracket(tournamentId: string) {
         throw new Error('Error fetching tournament teams.')
     }
 
-    // Find nearest power of 2 for bracket size based on max_slots allowing empty generations
-    let bracketSize = 2;
-    const targetSize = Math.max(tournament.max_slots || 2, teams ? teams.length : 0);
-    while (bracketSize < targetSize) {
-        bracketSize *= 2;
+    // Use overrideSize if provided, otherwise auto-detect
+    let bracketSize: number
+    if (overrideSize && [2, 4, 8, 16, 32].includes(overrideSize)) {
+        if (teams && overrideSize < teams.length) {
+            throw new Error(`Bracket size (${overrideSize}) cannot be smaller than the number of teams (${teams.length}).`)
+        }
+        bracketSize = overrideSize
+    } else {
+        bracketSize = 2
+        const targetSize = Math.max(tournament.max_slots || 2, teams ? teams.length : 0)
+        while (bracketSize < targetSize) {
+            bracketSize *= 2
+        }
     }
 
     // 2. Clear existing matches

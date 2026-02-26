@@ -1,7 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+
+const MATCH_HEIGHT = 110
+const MATCH_WIDTH = 300
+const ROUND_GAP = 60
+const CONNECTOR_WIDTH = 40
 
 export default function TournamentBracketManager({
     matches,
@@ -15,6 +20,8 @@ export default function TournamentBracketManager({
     const [scores, setScores] = useState<Record<string, { t1: number, t2: number }>>({})
     const [verifyIds, setVerifyIds] = useState<Record<string, string>>({})
     const [verifyError, setVerifyError] = useState<Record<string, string>>({})
+    const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
+    const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
 
     if (!matches || matches.length === 0) return null
 
@@ -27,6 +34,7 @@ export default function TournamentBracketManager({
 
     const roundNumbers = Object.keys(roundsMap).map(Number).sort((a, b) => a - b)
     const totalRounds = roundNumbers.length > 0 ? Math.max(...roundNumbers) : 0
+    const round1Count = roundsMap[roundNumbers[0]]?.length || 0
 
     const getRoundLabel = (round: number) => {
         if (round === totalRounds) return 'GRAND FINAL'
@@ -35,62 +43,57 @@ export default function TournamentBracketManager({
         return `ROUND ${round}`
     }
 
+    // Layout calculations
+    const MATCH_VERTICAL_GAP = 20
+    const totalHeight = round1Count * (MATCH_HEIGHT + MATCH_VERTICAL_GAP) - MATCH_VERTICAL_GAP
+    const totalWidth = roundNumbers.length * (MATCH_WIDTH + ROUND_GAP + CONNECTOR_WIDTH) - ROUND_GAP
+
+    const getMatchY = useCallback((roundIdx: number, matchIdx: number, matchesInRound: number): number => {
+        if (roundIdx === 0) {
+            const blockHeight = totalHeight / matchesInRound
+            return matchIdx * blockHeight + (blockHeight - MATCH_HEIGHT) / 2
+        }
+        const prevRoundMatchCount = matchesInRound * 2
+        const feeder1Y = getMatchY(roundIdx - 1, matchIdx * 2, prevRoundMatchCount)
+        const feeder2Y = getMatchY(roundIdx - 1, matchIdx * 2 + 1, prevRoundMatchCount)
+        return (feeder1Y + feeder2Y) / 2
+    }, [totalHeight])
+
+    // Action handlers
     const handleUpdateMatch = async (m: any) => {
         const s = scores[m.id]
         if (!s) return
-
-        let winnerId = null;
+        let winnerId = null
         if (s.t1 > s.t2) winnerId = m.team1_id
         else if (s.t2 > s.t1) winnerId = m.team2_id
-
-        if (!winnerId) {
-            alert('Matches cannot end in a draw.')
-            return
-        }
-
+        if (!winnerId) { alert('Matches cannot end in a draw.'); return }
         setUpdating(m.id)
         try {
             const res = await fetch(`/api/tournament/matches/${m.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ team1Score: s.t1, team2Score: s.t2, winnerId })
             })
-
             if (!res.ok) throw new Error('Failed to update score')
-
             router.refresh()
-        } catch (err) {
-            console.error(err)
-            alert('Failed to update match.')
-        } finally {
-            setUpdating(null)
-        }
+        } catch { alert('Failed to update match.') }
+        finally { setUpdating(null) }
     }
 
     const handleVerify = async (matchId: string) => {
         const dotaMatchId = verifyIds[matchId]
-        if (!dotaMatchId) {
-            setVerifyError(prev => ({ ...prev, [matchId]: 'Enter a Dota Match ID' }))
-            return
-        }
-
+        if (!dotaMatchId) { setVerifyError(prev => ({ ...prev, [matchId]: 'Enter a Dota Match ID' })); return }
         setUpdating(matchId)
         setVerifyError(prev => ({ ...prev, [matchId]: '' }))
-
         try {
             const res = await fetch(`/api/tournament/matches/${matchId}/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ dotaMatchId })
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || 'Verification failed')
             router.refresh()
-        } catch (err: any) {
-            setVerifyError(prev => ({ ...prev, [matchId]: err.message }))
-        } finally {
-            setUpdating(null)
-        }
+        } catch (err: any) { setVerifyError(prev => ({ ...prev, [matchId]: err.message })) }
+        finally { setUpdating(null) }
     }
 
     const handleReset = async (matchId: string) => {
@@ -100,273 +103,318 @@ export default function TournamentBracketManager({
             const res = await fetch(`/api/tournament/matches/${matchId}/reset`, { method: 'POST' })
             if (!res.ok) throw new Error('Failed to reset')
             router.refresh()
-        } catch (err) {
-            console.error(err)
-            alert('Failed to reset match.')
-        } finally {
-            setUpdating(null)
-        }
+        } catch { alert('Failed to reset match.') }
+        finally { setUpdating(null) }
     }
 
     const handleDropSwap = async (
         sourceMatchId: string, sourceSlot: number, sourceTeamId: string,
         targetMatchId: string, targetSlot: number, targetTeamId: string
     ) => {
-        if (sourceMatchId === targetMatchId && sourceSlot === targetSlot) return; // Same slot
-        if (!confirm('Swap these two teams in the bracket?')) return;
-
+        if (sourceMatchId === targetMatchId && sourceSlot === targetSlot) return
+        if (!confirm('Swap these two teams in the bracket?')) return
         setUpdating('swapping')
         try {
             const res = await fetch(`/api/tournaments/${tournamentId}/brackets/swap`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sourceMatchId, sourceSlot, sourceTeamId, targetMatchId, targetSlot, targetTeamId })
             })
-            if (!res.ok) {
-                const data = await res.json()
-                throw new Error(data.error || 'Failed to swap teams')
-            }
+            if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to swap teams') }
             router.refresh()
-        } catch (err: any) {
-            alert(err.message)
-        } finally {
-            setUpdating(null)
-        }
+        } catch (err: any) { alert(err.message) }
+        finally { setUpdating(null); setDragOverSlot(null) }
     }
 
     const handleRemoveTeam = async (matchId: string, slot: number) => {
-        if (!confirm('Remove this team from the match slot?')) return;
+        if (!confirm('Remove this team from the match slot?')) return
         setUpdating('removing')
         try {
             const res = await fetch(`/api/tournaments/${tournamentId}/brackets/remove-team`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ matchId, slot })
             })
-            if (!res.ok) {
-                const data = await res.json()
-                throw new Error(data.error || 'Failed to remove team')
-            }
+            if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to remove team') }
             router.refresh()
-        } catch (err: any) {
-            alert(err.message)
-        } finally {
-            setUpdating(null)
-        }
+        } catch (err: any) { alert(err.message) }
+        finally { setUpdating(null) }
+    }
+
+    const handleSetLive = async (matchId: string) => {
+        setUpdating(matchId)
+        try {
+            const res = await fetch(`/api/tournament/matches/${matchId}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ state: 'live', scheduledTime: new Date().toISOString() })
+            })
+            if (res.ok) router.refresh()
+        } finally { setUpdating(null) }
+    }
+
+    // Render a team slot (draggable)
+    const TeamSlot = ({ match, slot, teamId, teamName, isWinner, isLoser, isCompleted }: {
+        match: any; slot: number; teamId: string | null; teamName: string; isWinner: boolean; isLoser: boolean; isCompleted: boolean
+    }) => {
+        const slotKey = `${match.id}-${slot}`
+        const isDragOver = dragOverSlot === slotKey
+
+        return (
+            <div
+                draggable={!isCompleted && !!teamId}
+                onDragStart={(e) => {
+                    e.dataTransfer.setData('sourceMatchId', match.id)
+                    e.dataTransfer.setData('sourceSlot', String(slot))
+                    e.dataTransfer.setData('sourceTeamId', teamId || '')
+                    e.dataTransfer.effectAllowed = 'move'
+                }}
+                onDragOver={(e) => { e.preventDefault(); setDragOverSlot(slotKey) }}
+                onDragLeave={() => setDragOverSlot(null)}
+                onDrop={(e) => {
+                    e.preventDefault()
+                    setDragOverSlot(null)
+                    handleDropSwap(
+                        e.dataTransfer.getData('sourceMatchId'),
+                        parseInt(e.dataTransfer.getData('sourceSlot')),
+                        e.dataTransfer.getData('sourceTeamId'),
+                        match.id, slot, teamId || ''
+                    )
+                }}
+                className={`group flex items-center justify-between px-3 py-2 rounded-[2px] text-xs transition-all duration-150 border
+                    ${isDragOver ? 'border-[#dc143c] bg-[#dc143c]/10 scale-[1.02] shadow-lg shadow-[#dc143c]/20' :
+                        !isCompleted && teamId ? 'border-transparent bg-white/5 cursor-grab active:cursor-grabbing hover:bg-white/10 hover:border-[#dc143c]/40' :
+                            teamId ? 'border-transparent bg-white/5' :
+                                'border-dashed border-white/10 bg-transparent'
+                    }`}
+            >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {teamId && (
+                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isWinner ? 'bg-green-400' : isLoser ? 'bg-red-400' : 'bg-zinc-600'}`} />
+                    )}
+                    <span className={`font-mono truncate text-[11px] ${isWinner ? 'text-green-400 font-bold' :
+                            isLoser ? 'text-red-400/70' :
+                                teamId ? 'text-white' : 'text-zinc-700 italic'
+                        }`}>
+                        {teamId ? teamName : 'TBD'}
+                    </span>
+                    {!isCompleted && teamId && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleRemoveTeam(match.id, slot) }}
+                            className="text-zinc-600 hover:text-[#dc143c] opacity-0 group-hover:opacity-100 transition-all ml-auto shrink-0"
+                            title="Remove"
+                        >
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    )}
+                </div>
+                {isCompleted && (
+                    <span className={`font-bold text-sm font-mono ml-2 ${isWinner ? 'text-green-400' : 'text-red-400/60'}`}>
+                        {slot === 1 ? match.team1_score : match.team2_score}
+                    </span>
+                )}
+            </div>
+        )
     }
 
     return (
-        <div className="bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden p-6 mt-8">
-            <h2 className="text-xl font-rajdhani font-bold text-white mb-6 flex items-center gap-3">
-                <span className="w-4 h-1 bg-[#dc143c]"></span>
-                BRACKET MANAGEMENT
-            </h2>
+        <div className="bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                <h2 className="text-sm font-rajdhani font-bold text-white uppercase tracking-[0.2em] flex items-center gap-3">
+                    <span className="w-4 h-1 bg-[#dc143c]"></span>
+                    Visual Bracket
+                </h2>
+                <span className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest">Drag teams to swap positions</span>
+            </div>
 
-            <div className="flex gap-8 overflow-x-auto pb-8 snap-x">
-                {roundNumbers.map(round => {
-                    const roundMatches = roundsMap[round]
-                    const label = getRoundLabel(round)
-                    const isFinal = round === totalRounds
+            <div className="overflow-x-auto p-6">
+                {/* Round labels */}
+                <div className="flex mb-4" style={{ width: totalWidth + 60 }}>
+                    {roundNumbers.map((round, idx) => {
+                        const x = idx * (MATCH_WIDTH + ROUND_GAP + CONNECTOR_WIDTH)
+                        const label = getRoundLabel(round)
+                        const isFinal = round === totalRounds
+                        return (
+                            <div key={round} className="flex-shrink-0" style={{ width: MATCH_WIDTH, marginLeft: idx === 0 ? 0 : ROUND_GAP + CONNECTOR_WIDTH }}>
+                                <span className={`text-[9px] font-bold tracking-[0.3em] uppercase ${isFinal ? 'text-[#dc143c]' : 'text-zinc-600'}`}>
+                                    {label}
+                                </span>
+                            </div>
+                        )
+                    })}
+                </div>
 
-                    return (
-                        <div key={round} className="flex-shrink-0 w-80 space-y-4 snap-start">
-                            <h3 className={`text-xs font-bold tracking-[0.3em] uppercase pb-2 border-b ${isFinal ? 'text-[#dc143c] border-[#dc143c]/30' : 'text-gray-500 border-white/10'}`}>
-                                {label}
-                            </h3>
+                {/* Bracket SVG + Match Cards */}
+                <div className="relative" style={{ width: totalWidth + 60, height: Math.max(totalHeight + 40, 200) }}>
+                    {/* SVG Connectors */}
+                    <svg className="absolute inset-0 pointer-events-none" style={{ width: totalWidth + 60, height: totalHeight + 40 }}>
+                        {roundNumbers.slice(1).map((round, idx) => {
+                            const roundIdx = idx + 1
+                            const currentMatches = roundsMap[round]
+                            return currentMatches.map((_: any, matchIdx: number) => {
+                                const currentX = roundIdx * (MATCH_WIDTH + ROUND_GAP + CONNECTOR_WIDTH)
+                                const prevX = (roundIdx - 1) * (MATCH_WIDTH + ROUND_GAP + CONNECTOR_WIDTH) + MATCH_WIDTH
+                                const currentY = getMatchY(roundIdx, matchIdx, currentMatches.length) + MATCH_HEIGHT / 2
+                                const feeder1Y = getMatchY(roundIdx - 1, matchIdx * 2, currentMatches.length * 2) + MATCH_HEIGHT / 2
+                                const feeder2Y = getMatchY(roundIdx - 1, matchIdx * 2 + 1, currentMatches.length * 2) + MATCH_HEIGHT / 2
+                                const midX = prevX + (currentX - prevX) / 2
 
-                            <div className="space-y-4">
-                                {roundMatches.map((m: any) => {
-                                    const isReady = m.team1_id && m.team2_id
-                                    const isCompleted = m.state === 'completed'
-                                    const isLive = m.state === 'live'
-                                    const isUpdating = updating === m.id
-                                    const isBye = (m.team1_id && !m.team2_id) || (!m.team1_id && m.team2_id)
+                                return (
+                                    <g key={`connector-${round}-${matchIdx}`}>
+                                        {/* Top feeder horizontal */}
+                                        <line x1={prevX} y1={feeder1Y} x2={midX} y2={feeder1Y} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                                        {/* Bottom feeder horizontal */}
+                                        <line x1={prevX} y1={feeder2Y} x2={midX} y2={feeder2Y} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                                        {/* Vertical connector */}
+                                        <line x1={midX} y1={feeder1Y} x2={midX} y2={feeder2Y} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                                        {/* Center to current match */}
+                                        <line x1={midX} y1={currentY} x2={currentX} y2={currentY} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                                    </g>
+                                )
+                            })
+                        })}
+                    </svg>
 
-                                    return (
-                                        <div key={m.id} className={`p-4 border rounded-sm transition-colors relative
-                                            ${isCompleted ? 'border-green-500/30 bg-green-500/5' :
-                                                isLive ? 'border-yellow-500/40 bg-yellow-500/5' :
-                                                    isReady ? 'border-white/20 bg-black/40' :
-                                                        'border-white/5 bg-transparent'}`}
-                                        >
-                                            {/* State badge */}
-                                            <div className="flex items-center justify-between mb-3">
-                                                <span className={`text-[9px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 rounded-sm border ${isCompleted ? 'text-green-400 bg-green-500/10 border-green-500/20' :
-                                                    isLive ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20 animate-pulse' :
-                                                        isBye ? 'text-zinc-500 bg-zinc-800 border-zinc-700' :
-                                                            'text-zinc-500 bg-white/5 border-white/10'
-                                                    }`}>
-                                                    {isCompleted ? '✓ COMPLETED' : isLive ? '● LIVE' : isBye ? 'BYE' : 'PENDING'}
-                                                </span>
-                                                {m.scheduled_time && (
-                                                    <span className="text-[9px] text-zinc-500 font-mono">
-                                                        {new Date(m.scheduled_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                                    </span>
-                                                )}
-                                            </div>
+                    {/* Match Cards */}
+                    {roundNumbers.map((round, roundIdx) => {
+                        const roundMatches = roundsMap[round]
+                        return roundMatches.map((m: any, matchIdx: number) => {
+                            const x = roundIdx * (MATCH_WIDTH + ROUND_GAP + CONNECTOR_WIDTH)
+                            const y = getMatchY(roundIdx, matchIdx, roundMatches.length)
+                            const isReady = m.team1_id && m.team2_id
+                            const isCompleted = m.state === 'completed'
+                            const isLive = m.state === 'live'
+                            const isExpanded = expandedMatch === m.id
+                            const isUpdating = updating === m.id
+                            const isFinal = round === totalRounds
 
-                                            {/* Teams */}
-                                            <div className="flex flex-col gap-2 mb-3">
-                                                {/* Team 1 */}
-                                                <div
-                                                    draggable={!isCompleted}
-                                                    onDragStart={(e) => {
-                                                        e.dataTransfer.setData('sourceMatchId', m.id)
-                                                        e.dataTransfer.setData('sourceSlot', '1')
-                                                        e.dataTransfer.setData('sourceTeamId', m.team1_id || '')
-                                                    }}
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    onDrop={(e) => {
-                                                        e.preventDefault()
-                                                        handleDropSwap(
-                                                            e.dataTransfer.getData('sourceMatchId'),
-                                                            parseInt(e.dataTransfer.getData('sourceSlot')),
-                                                            e.dataTransfer.getData('sourceTeamId'),
-                                                            m.id, 1, m.team1_id || ''
-                                                        )
-                                                    }}
-                                                    className={`group flex justify-between items-center p-2.5 rounded-sm text-sm transition-colors ${!isCompleted ? 'bg-white/5 cursor-grab active:cursor-grabbing hover:bg-white/10 hover:border-[#dc143c]/50 border border-transparent' : 'bg-white/5 border border-transparent'}`}
-                                                >
-                                                    <span className={`font-mono truncate flex items-center gap-2 flex-1 ${m.winner_id === m.team1_id ? 'text-green-400 font-bold' : isCompleted && m.team1_id ? 'text-red-400' : m.team1_id ? 'text-white' : 'text-gray-600'}`}>
-                                                        {m.team1_id ? m.team1?.name || 'Unknown' : 'TBD'}
-                                                        {!isCompleted && m.team1_id && (
-                                                            <button onClick={(e) => { e.stopPropagation(); handleRemoveTeam(m.id, 1); }} className="text-zinc-500 hover:text-[#dc143c] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove Team">
-                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                                            </button>
-                                                        )}
-                                                    </span>
-                                                    {isCompleted ? (
-                                                        <span className={`font-bold text-lg font-mono ml-2 ${m.winner_id === m.team1_id ? 'text-green-400' : 'text-red-400'}`}>{m.team1_score}</span>
-                                                    ) : isReady && (
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            className="w-12 bg-black border border-white/20 text-white rounded-[2px] px-2 py-0.5 text-center font-mono cursor-text"
-                                                            value={scores[m.id]?.t1 ?? 0}
-                                                            onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: parseInt(e.target.value) || 0, t2: prev[m.id]?.t2 ?? 0 } }))}
-                                                        />
-                                                    )}
-                                                </div>
+                            return (
+                                <div
+                                    key={m.id}
+                                    className="absolute"
+                                    style={{ left: x, top: y, width: MATCH_WIDTH }}
+                                >
+                                    <div
+                                        onClick={() => setExpandedMatch(isExpanded ? null : m.id)}
+                                        className={`rounded-sm border transition-all duration-200 cursor-pointer
+                                            ${isFinal ? 'ring-1 ring-[#dc143c]/20' : ''}
+                                            ${isCompleted ? 'border-green-500/30 bg-green-500/[0.03]' :
+                                                isLive ? 'border-yellow-500/40 bg-yellow-500/[0.03]' :
+                                                    isReady ? 'border-white/15 bg-black/60' :
+                                                        'border-white/5 bg-black/30'
+                                            }
+                                            ${isExpanded ? 'shadow-xl shadow-black/40 z-20' : 'hover:border-white/20'}
+                                        `}
+                                    >
+                                        {/* Match header */}
+                                        <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/5">
+                                            <span className={`text-[8px] font-bold uppercase tracking-[0.2em] ${isCompleted ? 'text-green-500' : isLive ? 'text-yellow-500' : 'text-zinc-600'
+                                                }`}>
+                                                {isCompleted ? '✓ Done' : isLive ? '● Live' : 'Pending'}
+                                            </span>
+                                            <span className="text-[8px] text-zinc-700 font-mono">M{matchIdx + 1}</span>
+                                        </div>
 
-                                                {/* Team 2 */}
-                                                <div
-                                                    draggable={!isCompleted}
-                                                    onDragStart={(e) => {
-                                                        e.dataTransfer.setData('sourceMatchId', m.id)
-                                                        e.dataTransfer.setData('sourceSlot', '2')
-                                                        e.dataTransfer.setData('sourceTeamId', m.team2_id || '')
-                                                    }}
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    onDrop={(e) => {
-                                                        e.preventDefault()
-                                                        handleDropSwap(
-                                                            e.dataTransfer.getData('sourceMatchId'),
-                                                            parseInt(e.dataTransfer.getData('sourceSlot')),
-                                                            e.dataTransfer.getData('sourceTeamId'),
-                                                            m.id, 2, m.team2_id || ''
-                                                        )
-                                                    }}
-                                                    className={`group flex justify-between items-center p-2.5 rounded-sm text-sm transition-colors ${!isCompleted ? 'bg-white/5 cursor-grab active:cursor-grabbing hover:bg-white/10 hover:border-[#dc143c]/50 border border-transparent' : 'bg-white/5 border border-transparent'}`}
-                                                >
-                                                    <span className={`font-mono truncate flex items-center gap-2 flex-1 ${m.winner_id === m.team2_id ? 'text-green-400 font-bold' : isCompleted && m.team2_id ? 'text-red-400' : m.team2_id ? 'text-white' : 'text-gray-600'}`}>
-                                                        {m.team2_id ? m.team2?.name || 'Unknown' : 'TBD'}
-                                                        {!isCompleted && m.team2_id && (
-                                                            <button onClick={(e) => { e.stopPropagation(); handleRemoveTeam(m.id, 2); }} className="text-zinc-500 hover:text-[#dc143c] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove Team">
-                                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                                            </button>
-                                                        )}
-                                                    </span>
-                                                    {isCompleted ? (
-                                                        <span className={`font-bold text-lg font-mono ml-2 ${m.winner_id === m.team2_id ? 'text-green-400' : 'text-red-400'}`}>{m.team2_score}</span>
-                                                    ) : isReady && (
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            className="w-12 bg-black border border-white/20 text-white rounded-[2px] px-2 py-0.5 text-center font-mono cursor-text"
-                                                            value={scores[m.id]?.t2 ?? 0}
-                                                            onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: prev[m.id]?.t1 ?? 0, t2: parseInt(e.target.value) || 0 } }))}
-                                                        />
-                                                    )}
-                                                </div>
-                                            </div>
+                                        {/* Team slots */}
+                                        <div className="p-1.5 space-y-1">
+                                            <TeamSlot
+                                                match={m} slot={1} teamId={m.team1_id} teamName={m.team1?.name || 'Unknown'}
+                                                isWinner={isCompleted && m.winner_id === m.team1_id}
+                                                isLoser={isCompleted && m.team1_id && m.winner_id !== m.team1_id}
+                                                isCompleted={isCompleted}
+                                            />
+                                            <TeamSlot
+                                                match={m} slot={2} teamId={m.team2_id} teamName={m.team2?.name || 'Unknown'}
+                                                isWinner={isCompleted && m.winner_id === m.team2_id}
+                                                isLoser={isCompleted && m.team2_id && m.winner_id !== m.team2_id}
+                                                isCompleted={isCompleted}
+                                            />
+                                        </div>
+                                    </div>
 
-                                            {/* Actions */}
+                                    {/* Expanded actions panel */}
+                                    {isExpanded && (
+                                        <div className="mt-1 border border-white/10 bg-black/90 backdrop-blur-xl rounded-sm p-3 space-y-3 z-30 relative shadow-2xl shadow-black/60">
                                             {!isCompleted && isReady && (
-                                                <div className="flex flex-col gap-2">
-                                                    {m.state === 'pending' && (
+                                                <>
+                                                    {/* Score inputs */}
+                                                    <div>
+                                                        <p className="text-[8px] text-zinc-500 font-mono uppercase tracking-widest mb-1.5">Set Scores</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 flex items-center gap-1.5">
+                                                                <span className="text-[9px] text-zinc-500 font-mono truncate max-w-[80px]">{m.team1?.name}</span>
+                                                                <input type="number" min="0"
+                                                                    className="w-10 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-1.5 py-1 text-center font-mono text-xs"
+                                                                    value={scores[m.id]?.t1 ?? 0}
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: parseInt(e.target.value) || 0, t2: prev[m.id]?.t2 ?? 0 } }))}
+                                                                />
+                                                            </div>
+                                                            <span className="text-zinc-700 text-xs">vs</span>
+                                                            <div className="flex-1 flex items-center gap-1.5 justify-end">
+                                                                <input type="number" min="0"
+                                                                    className="w-10 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-1.5 py-1 text-center font-mono text-xs"
+                                                                    value={scores[m.id]?.t2 ?? 0}
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: prev[m.id]?.t1 ?? 0, t2: parseInt(e.target.value) || 0 } }))}
+                                                                />
+                                                                <span className="text-[9px] text-zinc-500 font-mono truncate max-w-[80px]">{m.team2?.name}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Action buttons */}
+                                                    <div className="flex gap-1.5">
+                                                        {m.state === 'pending' && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleSetLive(m.id) }}
+                                                                disabled={isUpdating}
+                                                                className="flex-1 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 text-[9px] font-bold uppercase tracking-widest rounded-[2px] border border-yellow-500/30 transition-colors"
+                                                            >● LIVE</button>
+                                                        )}
                                                         <button
-                                                            onClick={async () => {
-                                                                setUpdating(m.id)
-                                                                try {
-                                                                    const res = await fetch(`/api/tournament/matches/${m.id}`, {
-                                                                        method: 'PUT',
-                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                        body: JSON.stringify({ state: 'live', scheduledTime: new Date().toISOString() })
-                                                                    })
-                                                                    if (res.ok) router.refresh()
-                                                                } finally { setUpdating(null) }
-                                                            }}
-                                                            disabled={isUpdating}
-                                                            className="w-full py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors border border-yellow-500/30"
-                                                        >
-                                                            {isUpdating ? 'UPDATING...' : '● SET LIVE'}
-                                                        </button>
-                                                    )}
+                                                            onClick={(e) => { e.stopPropagation(); handleUpdateMatch(m) }}
+                                                            disabled={isUpdating || (scores[m.id]?.t1 === scores[m.id]?.t2)}
+                                                            className="flex-1 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-[9px] font-bold uppercase tracking-widest rounded-[2px] border border-green-500/30 transition-colors disabled:opacity-40"
+                                                        >✓ COMPLETE</button>
+                                                    </div>
 
-                                                    <button
-                                                        onClick={() => handleUpdateMatch(m)}
-                                                        disabled={isUpdating || (scores[m.id]?.t1 === scores[m.id]?.t2)}
-                                                        className="w-full py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50 border border-green-500/30"
-                                                    >
-                                                        {isUpdating ? 'UPDATING...' : '✓ COMPLETE MATCH'}
-                                                    </button>
-
-                                                    {/* OpenDota Verify */}
+                                                    {/* OpenDota verify */}
                                                     <div className="pt-2 border-t border-white/5">
-                                                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1.5">Auto-verify via OpenDota</p>
-                                                        <div className="flex gap-1.5">
+                                                        <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mb-1">OpenDota Auto-Verify</p>
+                                                        <div className="flex gap-1">
                                                             <input
-                                                                type="text"
-                                                                placeholder="Dota Match ID"
-                                                                className="flex-1 bg-black border border-white/10 text-white rounded-[2px] px-2 py-1.5 text-xs font-mono placeholder:text-zinc-700"
+                                                                type="text" placeholder="Dota Match ID"
+                                                                className="flex-1 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono placeholder:text-zinc-800"
                                                                 value={verifyIds[m.id] || ''}
+                                                                onClick={e => e.stopPropagation()}
                                                                 onChange={e => setVerifyIds(prev => ({ ...prev, [m.id]: e.target.value }))}
                                                             />
                                                             <button
-                                                                onClick={() => handleVerify(m.id)}
+                                                                onClick={(e) => { e.stopPropagation(); handleVerify(m.id) }}
                                                                 disabled={isUpdating}
-                                                                className="px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-[10px] font-bold uppercase tracking-widest rounded-[2px] border border-sky-500/30 whitespace-nowrap"
-                                                            >
-                                                                VERIFY
-                                                            </button>
+                                                                className="px-2 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-[9px] font-bold uppercase rounded-[2px] border border-sky-500/30"
+                                                            >VERIFY</button>
                                                         </div>
-                                                        {verifyError[m.id] && (
-                                                            <p className="text-[9px] text-red-400 font-mono mt-1">{verifyError[m.id]}</p>
-                                                        )}
+                                                        {verifyError[m.id] && <p className="text-[8px] text-red-400 font-mono mt-1">{verifyError[m.id]}</p>}
                                                     </div>
-                                                </div>
+                                                </>
                                             )}
 
-                                            {/* Completed state: show reset button */}
                                             {isCompleted && (
-                                                <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                                                    <span className="text-[10px] text-green-500 uppercase tracking-widest font-mono font-bold">MATCH CONCLUDED</span>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[9px] text-green-500 uppercase tracking-widest font-mono font-bold">Match Concluded</span>
                                                     <button
-                                                        onClick={() => handleReset(m.id)}
+                                                        onClick={(e) => { e.stopPropagation(); handleReset(m.id) }}
                                                         disabled={isUpdating}
-                                                        className="text-[9px] text-red-400 hover:text-red-300 font-mono uppercase tracking-widest transition-colors disabled:opacity-50"
-                                                    >
-                                                        ↺ RESET
-                                                    </button>
+                                                        className="text-[9px] text-red-400 hover:text-red-300 font-mono uppercase tracking-widest transition-colors"
+                                                    >↺ Reset</button>
                                                 </div>
                                             )}
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )
-                })}
+                                    )}
+                                </div>
+                            )
+                        })
+                    })}
+                </div>
             </div>
         </div>
     )

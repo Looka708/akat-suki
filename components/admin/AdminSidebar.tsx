@@ -44,6 +44,15 @@ const navigation = [
         ),
     },
     {
+        name: 'Bracket Manager',
+        href: '/admin/bracket-manager',
+        icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16M20 6v6m0 0l-3-3m3 3l3-3" />
+            </svg>
+        ),
+    },
+    {
         name: 'Player Pool',
         href: '/admin/player-pool',
         icon: (

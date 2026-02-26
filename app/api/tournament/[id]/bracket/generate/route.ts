@@ -13,7 +13,18 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 401 })
         }
 
-        const result = await generateBracket(id)
+        // Accept optional bracketSize from request body
+        let bracketSize: number | undefined
+        try {
+            const body = await request.json()
+            if (body.bracketSize && [2, 4, 8, 16, 32].includes(body.bracketSize)) {
+                bracketSize = body.bracketSize
+            }
+        } catch {
+            // No body sent, that's fine — generateBracket will auto-detect size
+        }
+
+        const result = await generateBracket(id, bracketSize)
         return NextResponse.json(result)
     } catch (error: any) {
         console.error('Failed to generate bracket:', error)

@@ -72,7 +72,7 @@ export default async function TournamentManagementPage({ params }: { params: Pro
             <div className="bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden">
                 <div className="p-6 border-b border-white/10 flex items-center justify-between">
                     <h2 className="text-xl font-rajdhani font-bold text-white">Registered Teams</h2>
-                    <BracketGenerator tournamentId={tournament.id} disabled={teams.length < 2} />
+                    <BracketGenerator tournamentId={tournament.id} disabled={teams.length < 2} teamCount={teams.length} />
                 </div>
 
                 <div className="overflow-x-auto">
