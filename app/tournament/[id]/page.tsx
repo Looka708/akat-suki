@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
