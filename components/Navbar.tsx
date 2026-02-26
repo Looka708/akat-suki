@@ -44,11 +44,11 @@ export default function Navbar() {
     }, [mobileMenuOpen])
 
     const navLinks = [
-        { href: '#mission', label: 'ORGANIZATION' },
-        { href: '#tournaments', label: 'TOURNAMENTS' },
-        { href: '#roster', label: 'ROSTER' },
-        { href: '#join-team', label: 'JOIN US' },
-        { href: '#contact', label: 'CONTACT' },
+        { href: '/organization', label: 'ORGANIZATION' },
+        { href: '/tournaments', label: 'TOURNAMENTS' },
+        { href: '/roster', label: 'ROSTER' },
+        { href: '/join-us', label: 'JOIN US' },
+        { href: '/#contact', label: 'CONTACT' },
     ]
 
     const handleLinkClick = () => {

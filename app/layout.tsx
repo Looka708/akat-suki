@@ -1,6 +1,6 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
-import { Inter, Rajdhani } from 'next/font/google'
+import { Inter, Rajdhani, Orbitron } from 'next/font/google'
 import CustomCursor from '@/components/CustomCursor'
 import BackgroundEffects from '@/components/BackgroundEffects'
 import { AuthProvider } from '@/components/AuthProvider'
@@ -19,6 +19,13 @@ const rajdhani = Rajdhani({
     weight: ['500', '600', '700'],
     display: 'swap',
     variable: '--font-rajdhani',
+})
+
+const orbitron = Orbitron({
+    subsets: ['latin'],
+    weight: ['400', '500', '700', '900'],
+    display: 'swap',
+    variable: '--font-orbitron',
 })
 
 export const viewport: Viewport = {
@@ -73,7 +80,7 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en" className={`${inter.variable} ${rajdhani.variable}`}>
+        <html lang="en" className={`${inter.variable} ${rajdhani.variable} ${orbitron.variable}`}>
             <body>
                 <AuthProvider>
                     <BackgroundEffects />

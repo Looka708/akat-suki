@@ -4,7 +4,6 @@ import Mission from '@/components/Mission'
 import dynamic from 'next/dynamic'
 
 const Tournaments = dynamic(() => import('@/components/Tournaments'))
-const OperationalExcellence = dynamic(() => import('@/components/OperationalExcellence'))
 const PlayerRoster = dynamic(() => import('@/components/PlayerRoster'))
 const JoinTeam = dynamic(() => import('@/components/JoinTeam'))
 const Newsletter = dynamic(() => import('@/components/Newsletter'))
@@ -16,9 +15,8 @@ export default function Home() {
         <main id="main-content">
             <Navbar />
             <Hero />
-            <Mission />
             <Tournaments />
-            <OperationalExcellence />
+            <Mission />
             <PlayerRoster />
             <JoinTeam />
             <Newsletter />
