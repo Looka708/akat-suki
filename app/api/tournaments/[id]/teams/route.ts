@@ -27,7 +27,11 @@ export async function GET(
             throw error
         }
 
-        return NextResponse.json({ teams })
+        return NextResponse.json({ teams }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=15'
+            }
+        })
     } catch (error: any) {
         console.error('Fetch tournament teams error:', error)
         return NextResponse.json(

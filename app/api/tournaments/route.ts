@@ -1,11 +1,27 @@
 import { NextResponse } from 'next/server'
-import { getTournaments } from '@/lib/tournament-db'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const tournaments = await getTournaments()
+        const { data: tournaments, error } = await supabaseAdmin
+            .from('tournaments')
+            .select(`
+                *,
+                registered_teams:tournament_teams (
+                    id, name, logo_url, captain_id,
+                    tournament_players (
+                        id, user_id, steam_id,
+                        users (username, avatar)
+                    )
+                ),
+                matches:tournament_matches (id)
+            `)
+            .order('start_date', { ascending: false })
+
+        if (error) throw error
+
         return NextResponse.json({ tournaments }, {
             headers: {
                 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30'

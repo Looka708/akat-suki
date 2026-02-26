@@ -65,14 +65,11 @@ export async function GET(request: NextRequest) {
             email: discordUser.email,
         })
 
-        // Attempt to add user to the server
+        // Join server in background to avoid blocking redirect
         const guildId = process.env.DISCORD_GUILD_ID
         if (guildId) {
-            try {
-                await joinDiscordServer(guildId, discordUser.id, tokenResponse.access_token)
-            } catch (err) {
-                console.error('Non-fatal error joining server:', err)
-            }
+            joinDiscordServer(guildId, discordUser.id, tokenResponse.access_token)
+                .catch(err => console.error('Background server join error:', err))
         }
 
 

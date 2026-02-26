@@ -52,7 +52,11 @@ export async function GET(
 
         if (teamsErr) throw teamsErr
 
-        return NextResponse.json({ tournament, matches, teams })
+        return NextResponse.json({ tournament, matches, teams }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=15'
+            }
+        })
     } catch (error: any) {
         console.error('Fetch tournament brackets error:', error)
         return NextResponse.json(

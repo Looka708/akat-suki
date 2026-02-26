@@ -50,54 +50,40 @@ export default function Tournaments() {
     // Fetch primary tournament and user's team
     useEffect(() => {
         const fetchInitialData = async () => {
+            // Safety timeout to ensure loading never gets stuck longer than 5 seconds
+            const timeoutId = setTimeout(() => setLoading(false), 5000)
+
             try {
-                // 1. Fetch tournaments (find first active or specific one)
+                // 1. Fetch tournaments (now includes teams and matches in one payload)
                 const tRes = await fetch('/api/tournaments')
-                if (!tRes.ok) {
-                    console.warn('API /api/tournaments failed with status:', tRes.status)
-                    throw new Error('Database connection failed')
-                }
+                if (!tRes.ok) throw new Error('Database connection failed')
+
                 const tData = await tRes.json()
-                if (tData.tournaments && tData.tournaments.length > 0) {
-                    const activeTournament = tData.tournaments[0];
-                    setTournament(activeTournament)
+                const activeTournament = tData.tournaments?.[0]
 
-                    // Fetch teams for this tournament
-                    try {
-                        const teamsRes = await fetch(`/api/tournaments/${activeTournament.id}/teams`)
-                        if (teamsRes.ok) {
-                            const teamsData = await teamsRes.json()
-                            if (teamsData.teams) {
-                                setRegisteredTeams(teamsData.teams)
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Failed to fetch teams', e)
-                    }
-
-                    // Also fetch bracket data to check if brackets exist
-                    try {
-                        const bracketsRes = await fetch(`/api/tournaments/${activeTournament.id}/brackets`)
-                        if (bracketsRes.ok) {
-                            const bracketsData = await bracketsRes.json()
-                            setMatchCount(bracketsData.matches?.length || 0)
-                        }
-                    } catch (e) {
-                        console.error('Failed to fetch brackets', e)
-                    }
+                if (!activeTournament) {
+                    setLoading(false)
+                    clearTimeout(timeoutId)
+                    return
                 }
 
-                // 2. If logged in, fetch their team
+                setTournament(activeTournament)
+                setRegisteredTeams(activeTournament.registered_teams || [])
+                setMatchCount(activeTournament.matches?.length || 0)
+
+                // 2. Fetch "my-team" separately as it depends on auth session
                 if (isAuthenticated) {
-                    const teamRes = await fetch('/api/tournament/my-team')
-                    const teamData = await teamRes.json()
-                    if (teamData.team) {
-                        setTeam(teamData.team)
+                    const myTeamRes = await fetch('/api/tournament/my-team')
+                    if (myTeamRes.ok) {
+                        const myTeamData = await myTeamRes.json()
+                        if (myTeamData.team) setTeam(myTeamData.team)
                     }
                 }
+
             } catch (err) {
-                console.error(err)
+                console.error('Tournament loading error:', err)
             } finally {
+                clearTimeout(timeoutId)
                 setLoading(false)
             }
         }
