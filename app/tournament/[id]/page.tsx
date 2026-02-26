@@ -1,12 +1,15 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SafeAvatar from '@/components/SafeAvatar'
 import ActivityFeed from '@/components/ActivityFeed'
+import TournamentTabs from '@/components/TournamentTabs'
+import DoubleElimBracket from '@/components/DoubleElimBracket'
+import GroupStandings from '@/components/GroupStandings'
+import GroupSchedule from '@/components/GroupSchedule'
+import MiniTwitchPlayer from '@/components/MiniTwitchPlayer'
 
 interface Tournament {
     id: string
@@ -26,15 +29,25 @@ interface Team {
     id: string
     name: string
     logo_url: string | null
-    tournament_players: { id: string; user_id: string; steam_id: string | null; users: { username: string; avatar: string | null } | null }[]
+    group_id?: string | null
+    tournament_players: {
+        id: string;
+        user_id: string;
+        steam_id: string | null;
+        users: { username: string; avatar: string | null } | null
+    }[]
 }
 
 interface Match {
     id: string
     round: number
     state: string
-    team1: { name: string } | null
-    team2: { name: string } | null
+    phase?: string
+    team1_id: string | null
+    team2_id: string | null
+    winner_id: string | null
+    team1: { id: string; name: string; logo_url: string | null } | null
+    team2: { id: string; name: string; logo_url: string | null } | null
     winner: { name: string } | null
     team1_score: number
     team2_score: number
@@ -42,41 +55,68 @@ interface Match {
     created_at: string
 }
 
+const TABS = [
+    { id: 'overview', label: 'Overview', icon: '🏠' },
+    { id: 'brackets', label: 'Brackets', icon: '⚔' },
+    { id: 'groups', label: 'Groups', icon: '📊' },
+    { id: 'roster', label: 'Roster', icon: '👥' },
+]
+
 export default function TournamentHubPage() {
     const params = useParams()
     const tournamentId = params.id as string
 
+    const [activeTab, setActiveTab] = useState('overview')
     const [tournament, setTournament] = useState<Tournament | null>(null)
     const [teams, setTeams] = useState<Team[]>([])
     const [matches, setMatches] = useState<Match[]>([])
+    const [groupsData, setGroupsData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await fetch(`/api/tournaments/${tournamentId}/brackets`)
-                if (!res.ok) throw new Error('Failed to load tournament data')
-                const data = await res.json()
-                setTournament(data.tournament)
-                setTeams(data.teams || [])
-                setMatches(data.matches || [])
-            } catch (e: any) {
-                setError(e.message)
-            } finally {
-                setLoading(false)
+    const fetchData = async () => {
+        try {
+            // Fetch everything in parallel
+            const [bracketRes, groupRes] = await Promise.all([
+                fetch(`/api/tournaments/${tournamentId}/brackets`),
+                fetch(`/api/tournaments/${tournamentId}/groups`).catch(() => null)
+            ])
+
+            if (!bracketRes.ok) throw new Error('Failed to load tournament data')
+
+            const bracketData = await bracketRes.json()
+            setTournament(bracketData.tournament)
+            setTeams(bracketData.teams || [])
+            setMatches(bracketData.matches || [])
+
+            if (groupRes?.ok) {
+                const groupData = await groupRes.json()
+                setGroupsData(groupData)
             }
+        } catch (e: any) {
+            setError(e.message)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    useEffect(() => {
         if (tournamentId) fetchData()
     }, [tournamentId])
 
-    const completedMatches = matches.filter(m => m.state === 'completed')
-    const liveMatches = matches.filter(m => m.state === 'live')
-    const pendingMatches = matches.filter(m => m.state === 'pending' && m.team1 && m.team2)
-    const totalRounds = matches.length > 0 ? Math.max(...matches.map(m => m.round)) : 0
+    // Live polling for brackets
+    useEffect(() => {
+        if (!tournament || tournament.status !== 'live') return
+        const interval = setInterval(fetchData, 30000)
+        return () => clearInterval(interval)
+    }, [tournament, tournamentId])
+
+    const completedMatches = useMemo(() => matches.filter(m => m.state === 'completed'), [matches])
+    const liveMatches = useMemo(() => matches.filter(m => m.state === 'live'), [matches])
+    const totalRounds = useMemo(() => matches.length > 0 ? Math.max(...matches.map(m => m.round)) : 0, [matches])
 
     // Find champion
-    const finalMatch = matches.find(m => m.round === totalRounds && m.state === 'completed')
+    const finalMatch = useMemo(() => matches.find(m => m.round === totalRounds && m.state === 'completed'), [matches, totalRounds])
     const championName = finalMatch?.winner?.name
 
     const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -93,7 +133,7 @@ export default function TournamentHubPage() {
                 <div className="pt-32 pb-20 flex items-center justify-center min-h-[80vh]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-10 h-10 border-2 border-[#dc143c] border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-xs text-zinc-500 uppercase tracking-[0.3em] font-mono">Loading Tournament</p>
+                        <p className="text-xs text-zinc-500 uppercase tracking-[0.3em] font-mono">Loading Tournament Hub</p>
                     </div>
                 </div>
                 <Footer />
@@ -107,9 +147,9 @@ export default function TournamentHubPage() {
                 <Navbar />
                 <div className="pt-32 pb-20 flex items-center justify-center min-h-[80vh]">
                     <div className="text-center">
-                        <h1 className="text-3xl font-rajdhani font-bold text-[#dc143c] mb-4">TOURNAMENT NOT FOUND</h1>
+                        <h1 className="text-3xl font-rajdhani font-bold text-[#dc143c] mb-4 text-glow">TOURNAMENT NOT FOUND</h1>
                         <p className="text-zinc-500 font-mono text-sm mb-8">{error || 'This tournament does not exist.'}</p>
-                        <Link href="/#tournaments" className="px-6 py-3 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors uppercase tracking-widest text-xs font-bold rounded-sm">
+                        <Link href="/#tournaments" className="px-6 py-3 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600 transition-all uppercase tracking-widest text-xs font-bold rounded-sm">
                             Back to Arena
                         </Link>
                     </div>
@@ -125,255 +165,209 @@ export default function TournamentHubPage() {
         <main className="min-h-screen bg-black text-white selection:bg-red-500/30">
             <Navbar />
 
-            {/* Hero Section */}
-            <div className="relative overflow-hidden">
-                {/* Background elements */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#dc143c]/[0.04] via-transparent to-transparent"></div>
-                <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
-                    <span className="text-[300px] font-rajdhani font-black text-white uppercase leading-none">{tournament.game}</span>
-                </div>
+            {/* Live Stream Overlay Component */}
+            {tournament.status === 'live' && <MiniTwitchPlayer />}
 
-                <div className="relative pt-32 pb-16 px-6 mx-auto max-w-6xl text-center">
-                    {/* Status Badge */}
-                    <div className="flex justify-center mb-6">
-                        <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.3em] border ${status.color} ${status.bg} ${status.border}`}>
-                            {tournament.status === 'live' && <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>}
-                            {status.label}
-                        </span>
-                    </div>
+            {/* Hero Section - Optimized for Multi-Tab Hub */}
+            <div className="relative overflow-hidden border-b border-white/5 bg-zinc-950/50">
+                {/* Background Mesh Gradient */}
+                <div className="absolute inset-0 bg-[#dc143c]/[0.02] mix-blend-overlay"></div>
+                <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[70%] bg-[#dc143c]/10 blur-[120px] rounded-full mix-blend-screen opacity-30 animate-pulse-slow"></div>
+                <div className="absolute -bottom-[20%] -right-[10%] w-[40%] h-[60%] bg-blue-500/10 blur-[120px] rounded-full mix-blend-screen opacity-20 animate-pulse-slow delay-1000"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-[#dc143c]/[0.05] via-transparent to-transparent"></div>
 
-                    {/* Tournament Name */}
-                    <div className="flex items-center justify-center gap-3 mb-3">
-                        <span className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#dc143c]"></span>
-                        <span className="text-[#dc143c] text-[10px] font-bold tracking-[0.5em] uppercase">{tournament.game} Tournament</span>
-                        <span className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#dc143c]"></span>
-                    </div>
-                    <h1 className="text-5xl md:text-7xl font-rajdhani font-black uppercase tracking-wider bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400/80 mb-4">
-                        {tournament.name}
-                    </h1>
-
-                    {tournament.description && (
-                        <p className="text-sm text-zinc-500 font-mono max-w-xl mx-auto mb-8">{tournament.description}</p>
-                    )}
-
-                    {/* Champion Banner */}
-                    {championName && (
-                        <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-yellow-500/10 via-yellow-500/20 to-yellow-500/10 border border-yellow-500/20 rounded-sm mb-8">
-                            <span className="text-2xl">👑</span>
-                            <div className="text-left">
-                                <p className="text-[9px] text-yellow-500/60 font-bold uppercase tracking-[0.3em]">Tournament Champion</p>
-                                <p className="text-lg font-rajdhani font-bold text-yellow-400 uppercase tracking-wide">{championName}</p>
+                <div className="relative pt-32 pb-12 px-6 mx-auto max-w-7xl">
+                    <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
+                        {/* Title & Info */}
+                        <div className="text-center md:text-left">
+                            <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-sm text-[9px] font-bold uppercase tracking-[0.2em] border ${status.color} ${status.bg} ${status.border}`}>
+                                    {tournament.status === 'live' && <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>}
+                                    {status.label}
+                                </span>
+                                <span className="text-zinc-600 font-mono text-[9px] uppercase tracking-widest pl-3 border-l border-white/10">
+                                    {tournament.game} / {tournament.id.substring(0, 8)}
+                                </span>
+                            </div>
+                            <h1 className="text-4xl md:text-6xl font-rajdhani font-black uppercase tracking-tight mb-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+                                {tournament.name}
+                            </h1>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-zinc-500 font-mono text-[10px] uppercase tracking-widest">
+                                <span>📅 {new Date(tournament.start_date).toLocaleDateString()}</span>
+                                <span>🏆 {tournament.currency === 'USD' ? '$' : tournament.currency}{tournament.prize_pool.toLocaleString()} Pool</span>
+                                <span>👥 {teams.length} / {tournament.max_slots} Teams</span>
                             </div>
                         </div>
-                    )}
 
-                    {/* Prize Pool */}
-                    <div className="flex items-center justify-center gap-8 mb-8">
-                        <div>
-                            <p className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest mb-1">Prize Pool</p>
-                            <p className="text-3xl font-rajdhani font-black text-[#dc143c]">
-                                {tournament.currency === 'USD' ? '$' : tournament.currency}{tournament.prize_pool.toLocaleString()}
-                            </p>
-                        </div>
-                        {tournament.entry_fee > 0 && (
-                            <div className="pl-8 border-l border-white/10">
-                                <p className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest mb-1">Entry Fee</p>
-                                <p className="text-xl font-rajdhani font-bold text-white">
-                                    {tournament.currency === 'USD' ? '$' : tournament.currency}{tournament.entry_fee}
-                                </p>
+                        {/* Champion Quick View */}
+                        {championName && (
+                            <div className="hidden lg:flex items-center gap-4 px-6 py-4 bg-yellow-500/5 border border-yellow-500/10 rounded-sm backdrop-blur-md">
+                                <span className="text-3xl filter drop-shadow-[0_0_10px_rgba(234,179,8,0.4)]">👑</span>
+                                <div>
+                                    <p className="text-[8px] text-yellow-500/60 font-bold uppercase tracking-widest mb-1">Defending Champion</p>
+                                    <p className="text-xl font-rajdhani font-black text-yellow-400 uppercase tracking-wide">{championName}</p>
+                                </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Date */}
-                    <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">
-                        {new Date(tournament.start_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                        {tournament.end_date && ` — ${new Date(tournament.end_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
-                    </p>
-                </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="px-6 mx-auto max-w-6xl -mt-4 mb-12">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="border border-white/10 bg-zinc-900/60 p-5 rounded-sm backdrop-blur-sm text-center">
-                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-2">Teams</p>
-                        <p className="text-3xl font-rajdhani font-black text-white">{teams.length}</p>
-                        <p className="text-[9px] text-zinc-600 font-mono mt-1">of {tournament.max_slots} slots</p>
-                    </div>
-                    <div className="border border-white/10 bg-zinc-900/60 p-5 rounded-sm backdrop-blur-sm text-center">
-                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-2">Matches Played</p>
-                        <p className="text-3xl font-rajdhani font-black text-white">{completedMatches.length}</p>
-                        <p className="text-[9px] text-zinc-600 font-mono mt-1">of {matches.length} total</p>
-                    </div>
-                    <div className="border border-white/10 bg-zinc-900/60 p-5 rounded-sm backdrop-blur-sm text-center">
-                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-2">Live Now</p>
-                        <p className={`text-3xl font-rajdhani font-black ${liveMatches.length > 0 ? 'text-green-400' : 'text-zinc-700'}`}>{liveMatches.length}</p>
-                        <p className="text-[9px] text-zinc-600 font-mono mt-1">{liveMatches.length > 0 ? 'in progress' : 'none active'}</p>
-                    </div>
-                    <div className="border border-white/10 bg-zinc-900/60 p-5 rounded-sm backdrop-blur-sm text-center">
-                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-2">Total Players</p>
-                        <p className="text-3xl font-rajdhani font-black text-white">{teams.reduce((acc, t) => acc + t.tournament_players.length, 0)}</p>
-                        <p className="text-[9px] text-zinc-600 font-mono mt-1">registered</p>
+                    {/* Navigation Tabs */}
+                    <div className="mt-12">
+                        <TournamentTabs
+                            tabs={TABS}
+                            activeTab={activeTab}
+                            onChange={setActiveTab}
+                        />
                     </div>
                 </div>
             </div>
 
-            {/* Navigation Cards */}
-            <div className="px-6 mx-auto max-w-6xl mb-16">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* View Brackets */}
-                    <Link href={`/tournament/${tournamentId}/brackets`}
-                        className="group border border-white/10 bg-zinc-900/40 rounded-sm p-6 hover:border-[#dc143c]/30 transition-all hover:bg-[#dc143c]/[0.03]">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-sm bg-[#dc143c]/10 border border-[#dc143c]/20 flex items-center justify-center group-hover:bg-[#dc143c]/20 transition-colors">
-                                <span className="text-xl">⚔</span>
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-rajdhani font-bold text-white uppercase tracking-wide group-hover:text-[#dc143c] transition-colors">View Brackets</h3>
-                                <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Tournament bracket tree</p>
-                            </div>
-                            <span className="text-zinc-600 group-hover:text-[#dc143c] transition-colors text-xl">→</span>
-                        </div>
-                    </Link>
+            {/* Main Content Area */}
+            <div className="px-6 py-12 mx-auto max-w-7xl min-h-[60vh]">
 
-                    {/* Group Stages */}
-                    <Link href={`/tournament/${tournamentId}/groups`}
-                        className="group border border-white/10 bg-zinc-900/40 rounded-sm p-6 hover:border-blue-500/30 transition-all hover:bg-blue-500/[0.03]">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-sm bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
-                                <span className="text-xl">📊</span>
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-rajdhani font-bold text-white uppercase tracking-wide group-hover:text-blue-400 transition-colors">Group Stages</h3>
-                                <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Round Robin & Standings</p>
-                            </div>
-                            <span className="text-zinc-600 group-hover:text-blue-400 transition-colors text-xl">→</span>
-                        </div>
-                    </Link>
-
-                    {/* Leaderboard */}
-                    <Link href={`/tournament/${tournamentId}/leaderboard`}
-                        className="group border border-white/10 bg-zinc-900/40 rounded-sm p-6 hover:border-yellow-500/30 transition-all hover:bg-yellow-500/[0.03]">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-sm bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center group-hover:bg-yellow-500/20 transition-colors">
-                                <span className="text-xl">🏆</span>
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-rajdhani font-bold text-white uppercase tracking-wide group-hover:text-yellow-400 transition-colors">Leaderboard</h3>
-                                <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Team standings & stats</p>
-                            </div>
-                            <span className="text-zinc-600 group-hover:text-yellow-400 transition-colors text-xl">→</span>
-                        </div>
-                    </Link>
-
-                    {/* Team Dashboard */}
-                    <Link href="/tournament/dashboard"
-                        className="group border border-white/10 bg-zinc-900/40 rounded-sm p-6 hover:border-sky-500/30 transition-all hover:bg-sky-500/[0.03]">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-sm bg-sky-500/10 border border-sky-500/20 flex items-center justify-center group-hover:bg-sky-500/20 transition-colors">
-                                <span className="text-xl">👥</span>
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-rajdhani font-bold text-white uppercase tracking-wide group-hover:text-sky-400 transition-colors">My Team</h3>
-                                <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Dashboard & roster</p>
-                            </div>
-                            <span className="text-zinc-600 group-hover:text-sky-400 transition-colors text-xl">→</span>
-                        </div>
-                    </Link>
-                </div>
-            </div>
-
-            {/* Recent Matches */}
-            {completedMatches.length > 0 && (
-                <div className="px-6 mx-auto max-w-6xl mb-16">
-                    <div className="flex items-center gap-3 mb-6">
-                        <span className="w-8 h-[1px] bg-[#dc143c]"></span>
-                        <h2 className="text-xs text-[#dc143c] font-bold tracking-[0.5em] uppercase">Recent Results</h2>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {completedMatches.slice(-6).reverse().map((match) => (
-                            <div key={match.id} className="border border-white/10 bg-zinc-900/40 rounded-sm p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest">
-                                        {match.round === totalRounds ? 'Grand Final' :
-                                            match.round === totalRounds - 1 ? 'Semi-Final' : `Round ${match.round}`}
-                                    </span>
-                                    <span className="text-[8px] text-green-400/60 font-mono uppercase">Completed</span>
+                {/* OVERVIEW TAB */}
+                {activeTab === 'overview' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Left: Tournament Details & Feed */}
+                            <div className="lg:col-span-2 space-y-8">
+                                {/* Bio / Description */}
+                                <div className="p-8 border border-white/5 bg-zinc-900/20 rounded-sm">
+                                    <h2 className="text-xs text-[#dc143c] font-bold tracking-[0.5em] uppercase mb-6 flex items-center gap-3">
+                                        <span className="w-1.5 h-1.5 bg-[#dc143c] rounded-full"></span>
+                                        About Tournament
+                                    </h2>
+                                    <p className="text-zinc-400 font-mono text-sm leading-relaxed whitespace-pre-wrap">
+                                        {tournament.description || "No description available for this event."}
+                                    </p>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <div className={`flex justify-between items-center px-2 py-1.5 rounded-sm ${match.winner?.name === match.team1?.name ? 'bg-[#dc143c]/10 border border-[#dc143c]/20' : 'bg-white/[0.02]'}`}>
-                                        <span className={`text-xs font-rajdhani font-bold ${match.winner?.name === match.team1?.name ? 'text-[#dc143c]' : 'text-zinc-500'}`}>
-                                            {match.team1?.name || 'TBD'}
-                                        </span>
-                                        <span className={`font-mono font-bold text-sm ${match.winner?.name === match.team1?.name ? 'text-[#dc143c]' : 'text-zinc-600'}`}>
-                                            {match.team1_score}
-                                        </span>
+
+                                {/* Activity Feed */}
+                                <ActivityFeed matches={matches as any} />
+                            </div>
+
+                            {/* Right: Stats & Quick Brackets */}
+                            <div className="space-y-6">
+                                {/* Stats Grid */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-4 border border-white/5 bg-zinc-900/40 rounded-sm text-center">
+                                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Played</p>
+                                        <p className="text-2xl font-rajdhani font-black text-white">{completedMatches.length}</p>
                                     </div>
-                                    <div className={`flex justify-between items-center px-2 py-1.5 rounded-sm ${match.winner?.name === match.team2?.name ? 'bg-[#dc143c]/10 border border-[#dc143c]/20' : 'bg-white/[0.02]'}`}>
-                                        <span className={`text-xs font-rajdhani font-bold ${match.winner?.name === match.team2?.name ? 'text-[#dc143c]' : 'text-zinc-500'}`}>
-                                            {match.team2?.name || 'TBD'}
-                                        </span>
-                                        <span className={`font-mono font-bold text-sm ${match.winner?.name === match.team2?.name ? 'text-[#dc143c]' : 'text-zinc-600'}`}>
-                                            {match.team2_score}
-                                        </span>
+                                    <div className="p-4 border border-white/5 bg-zinc-900/40 rounded-sm text-center">
+                                        <p className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-1">Live</p>
+                                        <p className={`text-2xl font-rajdhani font-black ${liveMatches.length > 0 ? 'text-green-400' : 'text-zinc-700'}`}>
+                                            {liveMatches.length}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Top 8 Roster Preview */}
+                                <div className="p-6 border border-white/5 bg-zinc-900/20 rounded-sm">
+                                    <h3 className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase mb-4">Participating Teams</h3>
+                                    <div className="space-y-2">
+                                        {teams.slice(0, 8).map(team => (
+                                            <div key={team.id} className="flex items-center gap-3 p-2 bg-white/[0.02] hover:bg-white/[0.05] border border-transparent hover:border-white/5 rounded-sm transition-all group">
+                                                <div className="w-8 h-8 rounded-[2px] overflow-hidden border border-white/10 shrink-0">
+                                                    <SafeAvatar src={team.logo_url} alt="" size={32} fallbackName={team.name} />
+                                                </div>
+                                                <span className="text-xs font-rajdhani font-bold text-zinc-300 group-hover:text-white transition-colors">{team.name}</span>
+                                            </div>
+                                        ))}
+                                        {teams.length > 8 && (
+                                            <button onClick={() => setActiveTab('roster')} className="w-full py-2 text-[9px] text-zinc-600 hover:text-white font-bold uppercase tracking-widest transition-colors border-t border-white/5 mt-2">
+                                                View all {teams.length} teams →
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Teams Grid */}
-            <div className="px-6 mx-auto max-w-6xl mb-20">
-                <div className="flex items-center gap-3 mb-6">
-                    <span className="w-8 h-[1px] bg-[#dc143c]"></span>
-                    <h2 className="text-xs text-[#dc143c] font-bold tracking-[0.5em] uppercase">Registered Teams</h2>
-                    <span className="text-[10px] text-zinc-600 font-mono ml-2">{teams.length}/{tournament.max_slots}</span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    {teams.map((team) => (
-                        <div key={team.id} className="border border-white/10 bg-zinc-900/40 rounded-sm p-4 hover:border-white/20 transition-colors group text-center">
-                            <div className="w-14 h-14 bg-zinc-800 border-2 border-transparent hover:border-white/10 overflow-hidden flex items-center justify-center mx-auto mb-3">
-                                <SafeAvatar src={team.logo_url} alt={team.name} size={56} fallbackName={team.name} />
+                {/* BRACKETS TAB */}
+                {activeTab === 'brackets' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {matches.length > 0 ? (
+                            <DoubleElimBracket matches={matches as any} teams={teams as any} />
+                        ) : (
+                            <div className="py-20 text-center border border-dashed border-white/10 rounded-sm">
+                                <p className="text-zinc-500 font-mono text-sm uppercase tracking-widest">Brackets have not been started yet</p>
                             </div>
-                            <h3 className="font-rajdhani font-bold text-white text-sm uppercase tracking-wide truncate group-hover:text-[#dc143c] transition-colors">{team.name}</h3>
-                            <p className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest mt-1">{team.tournament_players.length}/5 Players</p>
+                        )}
+                    </div>
+                )}
 
-                            {/* Player avatars row */}
-                            <div className="flex justify-center gap-0.5 mt-3">
-                                {team.tournament_players.slice(0, 5).map((p) => (
-                                    <div key={p.id} className="w-5 h-5 rounded-full overflow-hidden border border-white/10 bg-zinc-800">
-                                        <SafeAvatar src={p.users?.avatar} alt={p.users?.username || '?'} size={20} fallbackName={p.users?.username || '?'} />
+                {/* GROUPS TAB */}
+                {activeTab === 'groups' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {groupsData?.groupNames?.length > 0 ? (
+                            <div className="flex flex-col lg:flex-row gap-8">
+                                <div className="w-full lg:w-2/3">
+                                    <h2 className="text-xs text-blue-400 font-bold tracking-[0.5em] uppercase mb-8 flex items-center gap-3">
+                                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                                        Group Standings
+                                    </h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {groupsData.groupNames.map((name: string) => (
+                                            <GroupStandings key={name} groupName={name} teams={groupsData.groups[name]} />
+                                        ))}
                                     </div>
-                                ))}
-                                {Array.from({ length: Math.max(0, 5 - team.tournament_players.length) }).map((_, i) => (
-                                    <div key={`e-${i}`} className="w-5 h-5 rounded-full border border-dashed border-white/10 flex items-center justify-center">
-                                        <span className="text-[6px] text-zinc-700">+</span>
+                                </div>
+                                <div className="w-full lg:w-1/3">
+                                    <h2 className="text-xs text-zinc-500 font-bold tracking-[0.5em] uppercase mb-8 flex items-center gap-3">
+                                        <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full"></span>
+                                        Match Schedule
+                                    </h2>
+                                    <div className="max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+                                        <GroupSchedule matches={groupsData.matches} />
                                     </div>
-                                ))}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-
-                    {/* Empty slots */}
-                    {Array.from({ length: Math.max(0, Math.min(3, tournament.max_slots - teams.length)) }).map((_, i) => (
-                        <div key={`empty-${i}`} className="border border-dashed border-white/10 bg-transparent rounded-sm p-4 flex flex-col items-center justify-center min-h-[140px] opacity-40">
-                            <div className="w-14 h-14 rounded-sm border border-dashed border-white/20 flex items-center justify-center mb-3">
-                                <span className="text-zinc-600 text-2xl">+</span>
+                        ) : (
+                            <div className="py-20 text-center border border-dashed border-white/10 rounded-sm">
+                                <p className="text-zinc-500 font-mono text-sm uppercase tracking-widest">No group stages configured for this tournament</p>
                             </div>
-                            <p className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest">Open Slot</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                        )}
+                    </div>
+                )}
 
-            {/* Activity Feed */}
-            <div className="max-w-6xl mx-auto px-6">
-                <ActivityFeed matches={matches as any} />
+                {/* ROSTER TAB */}
+                {activeTab === 'roster' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {teams.map((team) => (
+                                <div key={team.id} className="group border border-white/5 bg-zinc-900/20 rounded-sm p-5 text-center transition-all hover:bg-zinc-800/40 hover:border-white/10">
+                                    <div className="w-16 h-16 bg-zinc-800 border-[3px] border-zinc-900 shadow-xl overflow-hidden flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform duration-500">
+                                        <SafeAvatar src={team.logo_url} alt={team.name} size={64} fallbackName={team.name} />
+                                    </div>
+                                    <h3 className="font-rajdhani font-black text-white text-[15px] uppercase tracking-wide truncate group-hover:text-[#dc143c] transition-colors">
+                                        {team.name}
+                                    </h3>
+                                    <p className="text-[9px] text-zinc-600 font-mono uppercase tracking-[0.2em] mt-1 mb-4">
+                                        {team.tournament_players.length} Players
+                                    </p>
+
+                                    {/* Mini roster preview */}
+                                    <div className="flex justify-center -space-x-1.5">
+                                        {team.tournament_players.slice(0, 5).map((p, idx) => (
+                                            <div key={p.id} className="w-6 h-6 rounded-full border-2 border-zinc-900 overflow-hidden bg-zinc-800" title={p.users?.username || 'Unknown'}>
+                                                <SafeAvatar src={p.users?.avatar} alt="" size={24} fallbackName={p.users?.username || '?'} />
+                                            </div>
+                                        ))}
+                                        {Array.from({ length: Math.max(0, 5 - team.tournament_players.length) }).map((_, i) => (
+                                            <div key={`e-${i}`} className="w-6 h-6 rounded-full border border-dashed border-white/10 flex items-center justify-center bg-transparent">
+                                                <span className="text-[8px] text-zinc-800">+</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
             </div>
 
             <Footer />

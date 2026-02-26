@@ -351,3 +351,11 @@ textarea:focus-visible {
 .animate-slideIn {
   animation: slideIn 0.2s ease-out;
 }
+/* Dashboard Animations */
+.animate-in { animation-duration: 400ms; animation-fill-mode: forwards; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.fade-in { animation-name: fadeIn; }
+.zoom-in { animation-name: zoomIn; }
+.slide-in-from-bottom-4 { animation-name: slideInBottom; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideInBottom { from { transform: translateY(1rem); } to { transform: translateY(0); } }
