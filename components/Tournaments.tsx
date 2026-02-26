@@ -14,6 +14,7 @@ export default function Tournaments() {
     const [tournament, setTournament] = useState<any>(null)
     const [team, setTeam] = useState<any>(null)
     const [registeredTeams, setRegisteredTeams] = useState<any[]>([])
+    const [matchCount, setMatchCount] = useState(0)
     const [loading, setLoading] = useState(true)
 
     const [tiltStyles, setTiltStyles] = useState<React.CSSProperties>({
@@ -72,6 +73,17 @@ export default function Tournaments() {
                         }
                     } catch (e) {
                         console.error('Failed to fetch teams', e)
+                    }
+
+                    // Also fetch bracket data to check if brackets exist
+                    try {
+                        const bracketsRes = await fetch(`/api/tournaments/${activeTournament.id}/brackets`)
+                        if (bracketsRes.ok) {
+                            const bracketsData = await bracketsRes.json()
+                            setMatchCount(bracketsData.matches?.length || 0)
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch brackets', e)
                     }
                 }
 
@@ -270,6 +282,28 @@ export default function Tournaments() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            {matchCount > 0 && (
+                                                <div className="mt-6 flex flex-col gap-3">
+                                                    <Link
+                                                        href={`/tournament/${tournament.id}/brackets`}
+                                                        className="block w-full py-4 bg-[#dc143c] hover:bg-white hover:text-black text-center text-white text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm shadow-[0_0_20px_rgba(220,20,60,0.3)]"
+                                                    >
+                                                        ⚔ VIEW LIVE BRACKETS
+                                                    </Link>
+                                                    <Link
+                                                        href={`/tournament/${tournament.id}/leaderboard`}
+                                                        className="block w-full py-3 bg-transparent border border-white/20 text-white hover:bg-white hover:text-black text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                                    >
+                                                        VIEW LEADERBOARD
+                                                    </Link>
+                                                    <Link
+                                                        href={`/tournament/${tournament.id}`}
+                                                        className="block w-full py-3 bg-transparent border border-white/10 text-zinc-400 hover:text-white text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                                    >
+                                                        TOURNAMENT HUB
+                                                    </Link>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 }
@@ -287,6 +321,14 @@ export default function Tournaments() {
                                             >
                                                 <span>Authenticate via Discord</span>
                                             </button>
+                                            {matchCount > 0 && (
+                                                <Link
+                                                    href={`/tournament/${tournament.id}/brackets`}
+                                                    className="mt-3 block w-full py-4 bg-transparent border border-white/20 text-white hover:bg-white hover:text-black text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                                >
+                                                    ⚔ VIEW BRACKETS
+                                                </Link>
+                                            )}
                                         </div>
                                     )
                                 }
@@ -307,6 +349,14 @@ export default function Tournaments() {
                                             >
                                                 Create New Squad
                                             </Link>
+                                            {matchCount > 0 && (
+                                                <Link
+                                                    href={`/tournament/${tournament.id}/brackets`}
+                                                    className="mt-3 block w-full py-4 bg-transparent border border-white/20 text-white hover:bg-white hover:text-black text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                                >
+                                                    ⚔ VIEW BRACKETS
+                                                </Link>
+                                            )}
                                         </div>
                                     )
                                 }
