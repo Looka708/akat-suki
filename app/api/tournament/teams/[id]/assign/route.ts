@@ -8,7 +8,7 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await requirePermission(PERMISSIONS.UPDATE_CONTENT)
+        await requirePermission(PERMISSIONS.EDIT_CONTENT)
         const { id } = await params
         const { tournamentId } = await request.json()
 
