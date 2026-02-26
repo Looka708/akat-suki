@@ -301,20 +301,31 @@ export default function Tournaments() {
                                             <p className="text-zinc-400 mb-8 font-mono text-sm text-center max-w-sm mx-auto">
                                                 Sign in with your Discord account to view your team status, manage your roster, and join the upcoming tournament.
                                             </p>
-                                            <button
-                                                onClick={() => login()}
-                                                className="w-full py-5 bg-[#dc143c] hover:bg-white hover:text-black text-white text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(220,20,60,0.4)]"
-                                            >
-                                                <span>Authenticate via Discord</span>
-                                            </button>
-                                            {matchCount > 0 && (
-                                                <Link
-                                                    href={`/tournament/${tournament.id}/brackets`}
-                                                    className="mt-3 block w-full py-4 bg-transparent border border-white/20 text-white hover:bg-white hover:text-black text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+
+                                            <div className="flex flex-col gap-3">
+                                                <button
+                                                    onClick={() => login()}
+                                                    className="w-full py-5 bg-[#dc143c] hover:bg-white hover:text-black text-white text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(220,20,60,0.4)]"
                                                 >
-                                                    ⚔ VIEW BRACKETS
+                                                    <span>Authenticate via Discord</span>
+                                                </button>
+
+                                                <Link
+                                                    href={`/tournament/${tournament.id}`}
+                                                    className="block w-full py-4 bg-white/5 border border-white/10 text-white hover:bg-white hover:text-black text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                                >
+                                                    📜 VIEW PUBLIC TOURNAMENT HUB
                                                 </Link>
-                                            )}
+
+                                                {matchCount > 0 && (
+                                                    <Link
+                                                        href={`/tournament/${tournament.id}/brackets`}
+                                                        className="block w-full py-4 bg-transparent border border-white/20 text-zinc-400 hover:text-white hover:border-white/40 text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-sm"
+                                                    >
+                                                        ⚔ VIEW BRACKETS
+                                                    </Link>
+                                                )}
+                                            </div>
                                         </div>
                                     )
                                 }
