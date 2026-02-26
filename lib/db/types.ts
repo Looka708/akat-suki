@@ -61,5 +61,7 @@ export interface TournamentMatch {
     scheduled_time: string | null
     next_winner_match_id: string | null
     next_loser_match_id: string | null
+    series_format: 'bo1' | 'bo3' | 'bo5' | null
+    series_matches: any[] | null
     created_at: string
 }

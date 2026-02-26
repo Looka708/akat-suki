@@ -23,6 +23,7 @@ export default function TournamentBracketManager({
     const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
     const [scheduleTimes, setScheduleTimes] = useState<Record<string, string>>({})
+    const [seriesFormats, setSeriesFormats] = useState<Record<string, string>>({})
 
     if (!matches || matches.length === 0) return null
 
@@ -153,16 +154,21 @@ export default function TournamentBracketManager({
 
     const handleScheduleMatch = async (matchId: string) => {
         const time = scheduleTimes[matchId]
-        if (!time) return
+        const format = seriesFormats[matchId]
+        if (!time && !format) return
         setUpdating(matchId)
         try {
+            const body: any = { state: 'pending' }
+            if (time) body.scheduledTime = new Date(time).toISOString()
+            if (format) body.seriesFormat = format
+
             const res = await fetch(`/api/tournament/matches/${matchId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scheduledTime: new Date(time).toISOString(), state: 'pending' })
+                body: JSON.stringify(body)
             })
-            if (!res.ok) throw new Error('Failed to schedule')
+            if (!res.ok) throw new Error('Failed to update match settings')
             router.refresh()
-        } catch { alert('Failed to schedule match.') }
+        } catch { alert('Failed to update match settings.') }
         finally { setUpdating(null) }
     }
 
@@ -325,7 +331,12 @@ export default function TournamentBracketManager({
                                                 }`}>
                                                 {isCompleted ? '✓ Done' : isLive ? '● Live' : 'Pending'}
                                             </span>
-                                            <span className="text-[8px] text-zinc-700 font-mono">M{matchIdx + 1}</span>
+                                            <div className="flex items-center gap-2">
+                                                {m.series_format && m.series_format !== 'bo1' && (
+                                                    <span className="text-[8px] text-[#dc143c] font-black uppercase tracking-widest">{m.series_format}</span>
+                                                )}
+                                                <span className="text-[8px] text-zinc-700 font-mono">M{matchIdx + 1}</span>
+                                            </div>
                                         </div>
 
                                         {/* Team slots */}
@@ -376,28 +387,38 @@ export default function TournamentBracketManager({
                                                         </div>
                                                     </div>
 
-                                                    {/* Scheduling */}
-                                                    <div className="pt-2 border-t border-white/5">
-                                                        <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mb-1.5">Schedule Match</p>
-                                                        <div className="flex gap-1.5">
-                                                            <input
-                                                                type="datetime-local"
-                                                                className="flex-1 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono"
-                                                                value={scheduleTimes[m.id] || (m.scheduled_time ? new Date(m.scheduled_time).toISOString().slice(0, 16) : '')}
-                                                                onClick={e => e.stopPropagation()}
-                                                                onChange={e => setScheduleTimes(prev => ({ ...prev, [m.id]: e.target.value }))}
-                                                            />
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleScheduleMatch(m.id) }}
-                                                                disabled={isUpdating || !scheduleTimes[m.id]}
-                                                                className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white text-[9px] font-bold uppercase rounded-[2px] border border-white/10 transition-colors disabled:opacity-40"
-                                                            >Set</button>
+                                                    {/* Scheduling & Format */}
+                                                    <div className="pt-2 border-t border-white/5 space-y-3">
+                                                        <div className="flex gap-3">
+                                                            <div className="flex-1">
+                                                                <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mb-1.5">Schedule</p>
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    className="w-full bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono"
+                                                                    value={scheduleTimes[m.id] || (m.scheduled_time ? new Date(m.scheduled_time).toISOString().slice(0, 16) : '')}
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    onChange={e => setScheduleTimes(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                                />
+                                                            </div>
+                                                            <div className="w-24">
+                                                                <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mb-1.5">Format</p>
+                                                                <select
+                                                                    className="w-full bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono"
+                                                                    value={seriesFormats[m.id] || m.series_format || 'bo1'}
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    onChange={e => setSeriesFormats(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                                >
+                                                                    <option value="bo1">BO1</option>
+                                                                    <option value="bo3">BO3</option>
+                                                                    <option value="bo5">BO5</option>
+                                                                </select>
+                                                            </div>
                                                         </div>
-                                                        {m.scheduled_time && !scheduleTimes[m.id] && (
-                                                            <p className="text-[8px] text-zinc-500 font-mono mt-1">
-                                                                Current: {new Date(m.scheduled_time).toLocaleString()}
-                                                            </p>
-                                                        )}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleScheduleMatch(m.id) }}
+                                                            disabled={isUpdating || (!scheduleTimes[m.id] && !seriesFormats[m.id])}
+                                                            className="w-full py-1 bg-white/5 hover:bg-white/10 text-white text-[9px] font-bold uppercase rounded-[2px] border border-white/10 transition-colors disabled:opacity-40"
+                                                        >Save Settings</button>
                                                     </div>
 
                                                     {/* Action buttons */}

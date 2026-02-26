@@ -17,7 +17,7 @@ export default async function TournamentsPage({
         .from('tournaments')
         .select(`
             *,
-            tournament_teams (count)
+            tournament_teams (logo_url, name)
         `)
         .order('start_date', { ascending: false })
 
@@ -116,17 +116,28 @@ export default async function TournamentsPage({
                                     <div className="text-right">
                                         <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mb-1">Participants</p>
                                         <p className="text-lg font-rajdhani font-bold text-white tracking-wide">
-                                            {t.tournament_teams?.[0]?.count || 0} / {t.max_slots}
+                                            {t.tournament_teams?.length || 0} / {t.max_slots}
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center justify-between pt-2">
                                     <div className="flex -space-x-2">
-                                        {/* Simplified team preview placeholders */}
-                                        <div className="w-6 h-6 rounded-full border border-black bg-zinc-900 flex items-center justify-center text-[8px] text-gray-500">T</div>
-                                        <div className="w-6 h-6 rounded-full border border-black bg-zinc-900 flex items-center justify-center text-[8px] text-gray-500">K</div>
-                                        <div className="w-6 h-6 rounded-full border border-black bg-zinc-900 flex items-center justify-center text-[8px] text-gray-500">+</div>
+                                        {t.tournament_teams?.slice(0, 3).map((team: any, i: number) => (
+                                            <SafeAvatar
+                                                key={i}
+                                                src={team.logo_url}
+                                                alt={team.name}
+                                                size={24}
+                                                className="border border-black ring-1 ring-white/5"
+                                                fallbackName={team.name}
+                                            />
+                                        ))}
+                                        {t.tournament_teams?.length > 3 && (
+                                            <div className="w-6 h-6 rounded-full border border-black bg-zinc-900 flex items-center justify-center text-[8px] text-gray-500 ring-1 ring-white/5 font-mono">
+                                                +{t.tournament_teams.length - 3}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2 group/btn">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#dc143c]">View Event</span>

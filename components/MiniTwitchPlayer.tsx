@@ -6,14 +6,17 @@ export default function MiniTwitchPlayer() {
     const [isMinimized, setIsMinimized] = useState(false)
     const [isClosed, setIsClosed] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const [hostname, setHostname] = useState('localhost')
 
     useEffect(() => {
         setMounted(true)
+        if (typeof window !== 'undefined') {
+            setHostname(window.location.hostname)
+        }
     }, [])
 
     if (!mounted || isClosed) return null
 
-    // Using localhost and the production domain for the parent param as required by Twitch Embeds
     const channel = "esl_dota2"
 
     return (
@@ -46,14 +49,20 @@ export default function MiniTwitchPlayer() {
                 </div>
             </div>
 
-            {/* Player */}
-            <div className={`transition-all duration-300 ease-in-out bg-black overflow-hidden ${isMinimized ? 'h-0 opacity-0' : 'h-[180px] md:h-[216px] opacity-100 border-t border-zinc-800'}`}>
-                {/* Embed Twitch Player */}
-                <iframe
-                    src={`https://player.twitch.tv/?channel=${channel}&parent=localhost&parent=akat-suki.site&muted=true`}
-                    className="w-full h-full border-none"
-                    allowFullScreen
-                ></iframe>
+            {/* Player Container */}
+            <div className={`transition-all duration-300 ease-in-out bg-black overflow-hidden ${isMinimized ? 'h-0 pointer-events-none' : 'h-[180px] md:h-[216px] border-t border-zinc-800'}`}>
+                {/* 
+                    Only render iframe when not minimized to avoid Autoplay errors 
+                    if the player tries to initialize while hidden/zero-sized.
+                */}
+                {!isMinimized && (
+                    <iframe
+                        src={`https://player.twitch.tv/?channel=${channel}&parent=${hostname}&parent=localhost&parent=akat-suki.site&muted=true&autoplay=true`}
+                        className="w-full h-full border-none"
+                        allow="autoplay; fullscreen"
+                        allowFullScreen
+                    ></iframe>
+                )}
             </div>
         </div>
     )

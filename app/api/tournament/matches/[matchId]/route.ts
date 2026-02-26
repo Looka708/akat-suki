@@ -10,6 +10,7 @@ const MatchUpdateSchema = z.object({
     winnerId: z.string().optional().nullable(),
     state: z.enum(['pending', 'live', 'completed']).optional(),
     scheduledTime: z.string().optional().nullable(),
+    seriesFormat: z.enum(['bo1', 'bo3', 'bo5']).optional().nullable(),
 })
 
 export async function PUT(
@@ -29,12 +30,16 @@ export async function PUT(
             return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
         }
 
-        const { team1Score, team2Score, winnerId, state, scheduledTime } = parsed.data
+        const { team1Score, team2Score, winnerId, state, scheduledTime, seriesFormat } = parsed.data
 
         if (state && team1Score === undefined && team2Score === undefined) {
-            // Just updating state or schedule
+            // Just updating state, schedule, or series format
             const { error: updateErr } = await supabaseAdmin.from('tournament_matches')
-                .update({ state, scheduled_time: scheduledTime })
+                .update({
+                    state,
+                    scheduled_time: scheduledTime,
+                    series_format: seriesFormat === undefined ? undefined : seriesFormat
+                })
                 .eq('id', matchId)
 
             if (updateErr) throw new Error(updateErr.message)

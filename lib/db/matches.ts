@@ -18,20 +18,37 @@ export async function getTournamentMatches(tournamentId: string) {
 }
 
 export async function updateMatchScore(matchId: string, t1Score: number, t2Score: number, winnerId: string) {
+    // 0. Fetch match to check series format
+    const { data: currentMatch } = await supabaseAdmin
+        .from('tournament_matches')
+        .select('series_format')
+        .eq('id', matchId)
+        .single()
+
+    const isSeries = currentMatch?.series_format && currentMatch.series_format !== 'bo1'
+    const threshold = currentMatch?.series_format === 'bo3' ? 2 : (currentMatch?.series_format === 'bo5' ? 3 : 1)
+
+    // Only mark as completed if a team reached the threshold or if it's a BO1
+    const isCompleted = !isSeries || (t1Score >= threshold || t2Score >= threshold || winnerId === 'draw')
+    const newState = isCompleted ? 'completed' : 'in_progress'
+
     // 1. Update current match
     const { data: match, error } = await supabaseAdmin
         .from('tournament_matches')
         .update({
             team1_score: t1Score,
             team2_score: t2Score,
-            winner_id: winnerId,
-            state: 'completed'
+            winner_id: isCompleted ? winnerId : null,
+            state: newState
         })
         .eq('id', matchId)
         .select()
         .single()
 
     if (error) throw error
+
+    // If series is not yet completed, don't advance
+    if (!isCompleted) return match as TournamentMatch
 
     // 2. Handle advancement (UB/Brackets)
     if (match.next_winner_match_id) {
