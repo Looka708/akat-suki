@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
+    "tmp",
     "vitest.config.ts",
     "__tests__"
   ]
