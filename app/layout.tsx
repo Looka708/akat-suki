@@ -5,6 +5,7 @@ import CustomCursor from '@/components/CustomCursor'
 import BackgroundEffects from '@/components/BackgroundEffects'
 import { AuthProvider } from '@/components/AuthProvider'
 import MiniTwitchPlayer from '@/components/MiniTwitchPlayer'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 const inter = Inter({
     subsets: ['latin'],
@@ -78,7 +79,9 @@ export default function RootLayout({
                     <BackgroundEffects />
                     <CustomCursor />
                     <MiniTwitchPlayer />
-                    {children}
+                    <ErrorBoundary>
+                        {children}
+                    </ErrorBoundary>
                 </AuthProvider>
             </body>
         </html>

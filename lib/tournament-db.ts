@@ -1,5 +1,9 @@
 import { supabaseAdmin } from './supabase-admin'
 
+export * from './db/brackets'
+export * from './db/leaderboard'
+export * from './db/swiss'
+
 export interface Tournament {
     id: string
     name: string

@@ -22,6 +22,7 @@ export default function TournamentBracketManager({
     const [verifyError, setVerifyError] = useState<Record<string, string>>({})
     const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
+    const [scheduleTimes, setScheduleTimes] = useState<Record<string, string>>({})
 
     if (!matches || matches.length === 0) return null
 
@@ -150,6 +151,21 @@ export default function TournamentBracketManager({
         } finally { setUpdating(null) }
     }
 
+    const handleScheduleMatch = async (matchId: string) => {
+        const time = scheduleTimes[matchId]
+        if (!time) return
+        setUpdating(matchId)
+        try {
+            const res = await fetch(`/api/tournament/matches/${matchId}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scheduledTime: new Date(time).toISOString(), state: 'pending' })
+            })
+            if (!res.ok) throw new Error('Failed to schedule')
+            router.refresh()
+        } catch { alert('Failed to schedule match.') }
+        finally { setUpdating(null) }
+    }
+
     // Render a team slot (draggable)
     const TeamSlot = ({ match, slot, teamId, teamName, isWinner, isLoser, isCompleted }: {
         match: any; slot: number; teamId: string | null; teamName: string; isWinner: boolean; isLoser: boolean; isCompleted: boolean
@@ -190,8 +206,8 @@ export default function TournamentBracketManager({
                         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isWinner ? 'bg-green-400' : isLoser ? 'bg-red-400' : 'bg-zinc-600'}`} />
                     )}
                     <span className={`font-mono truncate text-[11px] ${isWinner ? 'text-green-400 font-bold' :
-                            isLoser ? 'text-red-400/70' :
-                                teamId ? 'text-white' : 'text-zinc-700 italic'
+                        isLoser ? 'text-red-400/70' :
+                            teamId ? 'text-white' : 'text-zinc-700 italic'
                         }`}>
                         {teamId ? teamName : 'TBD'}
                     </span>
@@ -358,6 +374,30 @@ export default function TournamentBracketManager({
                                                                 <span className="text-[9px] text-zinc-500 font-mono truncate max-w-[80px]">{m.team2?.name}</span>
                                                             </div>
                                                         </div>
+                                                    </div>
+
+                                                    {/* Scheduling */}
+                                                    <div className="pt-2 border-t border-white/5">
+                                                        <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mb-1.5">Schedule Match</p>
+                                                        <div className="flex gap-1.5">
+                                                            <input
+                                                                type="datetime-local"
+                                                                className="flex-1 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono"
+                                                                value={scheduleTimes[m.id] || (m.scheduled_time ? new Date(m.scheduled_time).toISOString().slice(0, 16) : '')}
+                                                                onClick={e => e.stopPropagation()}
+                                                                onChange={e => setScheduleTimes(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                            />
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleScheduleMatch(m.id) }}
+                                                                disabled={isUpdating || !scheduleTimes[m.id]}
+                                                                className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white text-[9px] font-bold uppercase rounded-[2px] border border-white/10 transition-colors disabled:opacity-40"
+                                                            >Set</button>
+                                                        </div>
+                                                        {m.scheduled_time && !scheduleTimes[m.id] && (
+                                                            <p className="text-[8px] text-zinc-500 font-mono mt-1">
+                                                                Current: {new Date(m.scheduled_time).toLocaleString()}
+                                                            </p>
+                                                        )}
                                                     </div>
 
                                                     {/* Action buttons */}

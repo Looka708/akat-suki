@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { getDiscordAvatarUrl } from '@/lib/discord-auth'
+import { useState } from 'react'
 
 const navigation = [
 
@@ -104,12 +105,13 @@ const navigation = [
 export function AdminSidebar() {
     const pathname = usePathname()
     const { user, logout } = useAuth()
+    const [mobileOpen, setMobileOpen] = useState(false)
 
-    return (
-        <aside className="fixed left-0 top-0 h-full w-64 bg-black border-r border-white/10 z-40 flex flex-col">
+    const sidebarContent = (
+        <>
             {/* Logo */}
-            <div className="h-16 flex items-center px-6 border-b border-white/10">
-                <Link href="/admin" className="flex items-center gap-3">
+            <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
+                <Link href="/admin" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
                     <div className="w-6 h-6 bg-[#dc143c] flex items-center justify-center rounded-[2px]">
                         <span className="text-white font-bold text-[10px]">A</span>
                     </div>
@@ -117,36 +119,27 @@ export function AdminSidebar() {
                         ADMIN PANEL
                     </span>
                 </Link>
+                {/* Mobile close */}
+                <button
+                    onClick={() => setMobileOpen(false)}
+                    className="md:hidden text-zinc-400 hover:text-white"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                 {navigation.map((item) => {
                     const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
-                    const isComingSoon = false
-
-
-                    if (isComingSoon) {
-                        return (
-                            <div
-                                key={item.name}
-                                className="flex items-center justify-between px-4 py-3 rounded-sm text-gray-600 cursor-not-allowed group opacity-50"
-                            >
-                                <div className="flex items-center gap-3">
-                                    {item.icon}
-                                    <span className="font-medium text-sm">{item.name}</span>
-                                </div>
-                                <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-[2px] uppercase tracking-tighter">
-                                    Soon
-                                </span>
-                            </div>
-                        )
-                    }
 
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={() => setMobileOpen(false)}
                             className={`flex items-center gap-3 px-4 py-3 rounded-sm transition-all duration-200 ${isActive
                                 ? 'bg-[#dc143c]/10 text-[#dc143c] border-l-2 border-[#dc143c] pl-[14px]'
                                 : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -158,7 +151,6 @@ export function AdminSidebar() {
                     )
                 })}
             </nav>
-
 
             {/* User Info */}
             <div className="p-4 border-t border-white/10">
@@ -195,6 +187,38 @@ export function AdminSidebar() {
                     Logout
                 </button>
             </div>
-        </aside>
+        </>
+    )
+
+    return (
+        <>
+            {/* Mobile hamburger button */}
+            <button
+                onClick={() => setMobileOpen(true)}
+                className="fixed top-4 left-4 z-50 md:hidden w-10 h-10 bg-black border border-white/10 rounded-sm flex items-center justify-center text-white hover:bg-white/5 transition-colors"
+            >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+
+            {/* Desktop sidebar */}
+            <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-black border-r border-white/10 z-40 flex-col">
+                {sidebarContent}
+            </aside>
+
+            {/* Mobile overlay + sidebar */}
+            {mobileOpen && (
+                <>
+                    <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+                        onClick={() => setMobileOpen(false)}
+                    />
+                    <aside className="fixed left-0 top-0 h-full w-72 bg-black border-r border-white/10 z-50 flex flex-col md:hidden animate-slideIn">
+                        {sidebarContent}
+                    </aside>
+                </>
+            )}
+        </>
     )
 }

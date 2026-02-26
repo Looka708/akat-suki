@@ -18,8 +18,8 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     return (
         <div className="min-h-screen bg-[#050505]">
             <AdminSidebar />
-            <div className="ml-64">
-                <main className="p-8">
+            <div className="md:ml-64">
+                <main className="p-4 pt-16 md:pt-8 md:p-8">
                     {children}
                 </main>
             </div>

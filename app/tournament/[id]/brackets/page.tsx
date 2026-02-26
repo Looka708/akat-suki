@@ -107,6 +107,22 @@ export default function BracketsPage() {
         if (tournamentId) fetchData()
     }, [tournamentId])
 
+    // Live polling — auto-refresh brackets every 30s when a tournament is live
+    useEffect(() => {
+        if (!tournament || tournament.status !== 'live') return
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/tournaments/${tournamentId}/brackets`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setMatches(data.matches || [])
+                    setTeams(data.teams || [])
+                }
+            } catch { /* silent retry next interval */ }
+        }, 30000)
+        return () => clearInterval(interval)
+    }, [tournament, tournamentId])
+
     const getTeamData = (teamId: string | null): Team | undefined => {
         if (!teamId) return undefined
         return teams.find(t => t.id === teamId)
@@ -380,15 +396,21 @@ export default function BracketsPage() {
                                                                     <div className={`w-5 h-5 rounded-[2px] flex items-center justify-center shrink-0 overflow-hidden text-[8px] font-bold
                                                                         ${match.winner_id === match.team1_id ? 'bg-[#dc143c]/20 text-[#dc143c] border border-[#dc143c]/30' : 'bg-white/5 text-zinc-500 border border-white/10'}`}>
                                                                         {match.team1?.logo_url ? (
-                                                                            <img src={match.team1.logo_url} alt="" className="w-full h-full object-cover" />
+                                                                            <Link href={`/tournament/${tournamentId}/team/${match.team1_id}`} onClick={e => e.stopPropagation()} className="w-full h-full block">
+                                                                                <img src={match.team1.logo_url} alt="" className="w-full h-full object-cover" />
+                                                                            </Link>
                                                                         ) : (
-                                                                            match.team1?.name?.charAt(0) || '?'
+                                                                            <span className="text-[10px] uppercase">{match.team1?.name?.[0] || '?'}</span>
                                                                         )}
                                                                     </div>
-                                                                    <span className={`text-xs font-rajdhani font-bold truncate
-                                                                        ${match.winner_id === match.team1_id ? 'text-[#dc143c]' : match.team1_id ? 'text-white' : 'text-zinc-600'}`}>
-                                                                        {match.team1?.name || 'TBD'}
-                                                                    </span>
+                                                                    <Link
+                                                                        href={`/tournament/${tournamentId}/team/${match.team1_id}`}
+                                                                        onClick={e => e.stopPropagation()}
+                                                                        className={`text-[11px] font-bold uppercase truncate tracking-tight hover:text-[#dc143c] transition-colors
+                                                                        ${match.team1_id ? 'text-white' : 'text-zinc-600 italic'}`}
+                                                                    >
+                                                                        {match.team1?.name || (isBye ? 'BYE' : 'TBD')}
+                                                                    </Link>
                                                                 </div>
                                                                 <span className={`font-mono font-bold text-sm ml-2 min-w-[20px] text-right
                                                                     ${match.winner_id === match.team1_id ? 'text-[#dc143c]' : isCompleted ? 'text-zinc-600' : 'text-zinc-700'}`}>
@@ -405,15 +427,21 @@ export default function BracketsPage() {
                                                                     <div className={`w-5 h-5 rounded-[2px] flex items-center justify-center shrink-0 overflow-hidden text-[8px] font-bold
                                                                         ${match.winner_id === match.team2_id ? 'bg-[#dc143c]/20 text-[#dc143c] border border-[#dc143c]/30' : 'bg-white/5 text-zinc-500 border border-white/10'}`}>
                                                                         {match.team2?.logo_url ? (
-                                                                            <img src={match.team2.logo_url} alt="" className="w-full h-full object-cover" />
+                                                                            <Link href={`/tournament/${tournamentId}/team/${match.team2_id}`} onClick={e => e.stopPropagation()} className="w-full h-full block">
+                                                                                <img src={match.team2.logo_url} alt="" className="w-full h-full object-cover" />
+                                                                            </Link>
                                                                         ) : (
-                                                                            match.team2?.name?.charAt(0) || '?'
+                                                                            <span className="text-[10px] uppercase">{match.team2?.name?.[0] || '?'}</span>
                                                                         )}
                                                                     </div>
-                                                                    <span className={`text-xs font-rajdhani font-bold truncate
-                                                                        ${match.winner_id === match.team2_id ? 'text-[#dc143c]' : match.team2_id ? 'text-white' : 'text-zinc-600'}`}>
-                                                                        {match.team2?.name || 'TBD'}
-                                                                    </span>
+                                                                    <Link
+                                                                        href={`/tournament/${tournamentId}/team/${match.team2_id}`}
+                                                                        onClick={e => e.stopPropagation()}
+                                                                        className={`text-[11px] font-bold uppercase truncate tracking-tight hover:text-[#dc143c] transition-colors
+                                                                        ${match.team2_id ? 'text-white' : 'text-zinc-600 italic'}`}
+                                                                    >
+                                                                        {match.team2?.name || (isBye ? 'BYE' : 'TBD')}
+                                                                    </Link>
                                                                 </div>
                                                                 <span className={`font-mono font-bold text-sm ml-2 min-w-[20px] text-right
                                                                     ${match.winner_id === match.team2_id ? 'text-[#dc143c]' : isCompleted ? 'text-zinc-600' : 'text-zinc-700'}`}>
