@@ -110,10 +110,11 @@ export default function BackgroundEffects() {
 
     return (
         <>
-            {/* Static gradients — no blur, just opacity for cheaper GPU rendering */}
-            <div className="fixed inset-0 pointer-events-none z-0">
-                <div className="absolute inset-0 bg-gradient-to-b from-[#dc143c]/[0.03] via-transparent to-transparent"></div>
-                <div className="absolute inset-0 bg-gradient-to-br from-[#dc143c]/[0.02] via-transparent to-transparent"></div>
+            {/* Ambient moving lights for depth */}
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-60">
+                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#dc143c]/10 blur-[120px] animate-moving-light"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[#dc143c]/10 blur-[150px] animate-moving-light-reverse"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-[#dc143c]/[0.02] via-transparent to-[#dc143c]/[0.02]"></div>
             </div>
 
             {/* Canvas for animated lines */}

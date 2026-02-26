@@ -366,6 +366,50 @@ textarea:focus-visible {
   animation: pulse-slower 12s ease-in-out infinite;
 }
 
+@keyframes movingLight {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(15vw, 15vh) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-10vw, 25vh) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes movingLightReverse {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-15vw, -15vh) scale(1.1);
+  }
+
+  66% {
+    transform: translate(10vw, -25vh) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.animate-moving-light {
+  animation: movingLight 25s infinite alternate ease-in-out;
+}
+
+.animate-moving-light-reverse {
+  animation: movingLightReverse 30s infinite alternate ease-in-out;
+}
+
 /* Radial Gradient Utility */
 .bg-gradient-radial {
   background: radial-gradient(circle, var(--tw-gradient-stops));
