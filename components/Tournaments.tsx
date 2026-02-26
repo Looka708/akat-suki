@@ -137,7 +137,7 @@ export default function Tournaments() {
 
  if (loading) {
  return (
- <section className="py-32 bg-black min-h-screen flex items-center justify-center">
+ <section className="py-32 min-h-screen flex items-center justify-center">
  <div className="w-8 h-8 border-2 border-[#dc143c] border-t-transparent rounded-full animate-spin"></div>
  </section>
  )
@@ -147,7 +147,7 @@ export default function Tournaments() {
  <section
  id="tournaments"
  ref={sectionRef}
- className="relative py-32 bg-black"
+ className="relative py-32 bg-transparent"
  >
  <div className="max-w-[1400px] mx-auto px-6 relative z-10">
 
@@ -376,7 +376,7 @@ export default function Tournaments() {
  <div className="space-y-3 mb-8 squad-list">
  {team.tournament_players?.map((p: any) => (
  <div key={p.id} className="flex items-center gap-4 bg-black/40 border border-white/10 p-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:border-white/30 transition-all">
- <div className="w-8 h-8 rounded-full overflow-hidden bg-black border border-white/20">
+ <div className="w-8 h-8 rounded-full overflow-hidden bg-transparent border border-white/20">
  {p.users?.avatar ? (
  <img src={p.users.avatar} alt="Avatar" className="w-full h-full object-cover" />
  ) : (

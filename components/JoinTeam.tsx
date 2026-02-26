@@ -81,7 +81,7 @@ export default function JoinTeam() {
  <section
  id="join-team"
  ref={sectionRef}
- className="py-32 border-y border-white/5 bg-black"
+ className="py-32 border-y border-white/5 bg-transparent"
  >
  <div className="max-w-[1400px] mx-auto px-6">
  <div className="mb-20 text-center">

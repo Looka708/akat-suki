@@ -172,7 +172,7 @@ export default function OperationalExcellence() {
     return (
         <section
             ref={sectionRef}
-            className="py-32 relative bg-black overflow-hidden"
+            className="py-32 relative bg-transparent overflow-hidden"
             id="excellence"
         >
             {/* Background Scanner Line Overlay */}

@@ -22,7 +22,7 @@ export default function Hero() {
  return (
  <section
  ref={heroRef}
- className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden border-b border-white/5 bg-black"
+ className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden border-b border-white/5 bg-transparent"
  >
  {/* Video Background */}
  <div className="absolute inset-0 z-0">

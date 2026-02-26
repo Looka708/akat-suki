@@ -1,0 +1,96 @@
+﻿diff --git a/components/Footer.tsx b/components/Footer.tsx
+index 347f79b..b30fc06 100644
+--- a/components/Footer.tsx
++++ b/components/Footer.tsx
+@@ -2,7 +2,7 @@ import Link from 'next/link'
+ 
+ export default function Footer() {
+     return (
+-        <footer className="border-t border-white/10 bg-black py-16">
++        <footer className="border-t border-white/10 bg-transparent py-16">
+             <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+                 {/* Left */}
+                 <div className="flex items-center gap-3">
+diff --git a/components/Hero.tsx b/components/Hero.tsx
+index d9b67e5..639198b 100644
+--- a/components/Hero.tsx
++++ b/components/Hero.tsx
+@@ -22,7 +22,7 @@ export default function Hero() {
+  return (
+  <section
+  ref={heroRef}
+- className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden border-b border-white/5 bg-black"
++ className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden border-b border-white/5 bg-transparent"
+  >
+  {/* Video Background */}
+  <div className="absolute inset-0 z-0">
+diff --git a/components/JoinTeam.tsx b/components/JoinTeam.tsx
+index 081c7ba..c196adc 100644
+--- a/components/JoinTeam.tsx
++++ b/components/JoinTeam.tsx
+@@ -81,7 +81,7 @@ export default function JoinTeam() {
+  <section
+  id="join-team"
+  ref={sectionRef}
+- className="py-32 border-y border-white/5 bg-black"
++ className="py-32 border-y border-white/5 bg-transparent"
+  >
+  <div className="max-w-[1400px] mx-auto px-6">
+  <div className="mb-20 text-center">
+diff --git a/components/Mission.tsx b/components/Mission.tsx
+index 7d37a05..1671b45 100644
+--- a/components/Mission.tsx
++++ b/components/Mission.tsx
+@@ -132,7 +132,7 @@ export default function Mission() {
+  <section
+  id="mission"
+  ref={sectionRef}
+- className="py-40 relative bg-black overflow-hidden"
++ className="py-40 relative bg-transparent overflow-hidden"
+  onMouseMove={handleMouseMove}
+  >
+  {/* Background HUD Elements */}
+diff --git a/components/OperationalExcellence.tsx b/components/OperationalExcellence.tsx
+index 71baf21..6ef8efe 100644
+--- a/components/OperationalExcellence.tsx
++++ b/components/OperationalExcellence.tsx
+@@ -172,7 +172,7 @@ export default function OperationalExcellence() {
+     return (
+         <section
+             ref={sectionRef}
+-            className="py-32 relative bg-black overflow-hidden"
++            className="py-32 relative bg-transparent overflow-hidden"
+             id="excellence"
+         >
+             {/* Background Scanner Line Overlay */}
+diff --git a/components/Tournaments.tsx b/components/Tournaments.tsx
+index 0c5d045..c17ee4b 100644
+--- a/components/Tournaments.tsx
++++ b/components/Tournaments.tsx
+@@ -137,7 +137,7 @@ export default function Tournaments() {
+ 
+  if (loading) {
+  return (
+- <section className="py-32 bg-black min-h-screen flex items-center justify-center">
++ <section className="py-32 min-h-screen flex items-center justify-center">
+  <div className="w-8 h-8 border-2 border-[#dc143c] border-t-transparent rounded-full animate-spin"></div>
+  </section>
+  )
+@@ -147,7 +147,7 @@ export default function Tournaments() {
+  <section
+  id="tournaments"
+  ref={sectionRef}
+- className="relative py-32 bg-black"
++ className="relative py-32 bg-transparent"
+  >
+  <div className="max-w-[1400px] mx-auto px-6 relative z-10">
+ 
+@@ -376,7 +376,7 @@ export default function Tournaments() {
+  <div className="space-y-3 mb-8 squad-list">
+  {team.tournament_players?.map((p: any) => (
+  <div key={p.id} className="flex items-center gap-4 bg-black/40 border border-white/10 p-3 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:border-white/30 transition-all">
+- <div className="w-8 h-8 rounded-full overflow-hidden bg-black border border-white/20">
++ <div className="w-8 h-8 rounded-full overflow-hidden bg-transparent border border-white/20">
+  {p.users?.avatar ? (
+  <img src={p.users.avatar} alt="Avatar" className="w-full h-full object-cover" />
+  ) : (

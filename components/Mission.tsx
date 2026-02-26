@@ -132,7 +132,7 @@ export default function Mission() {
  <section
  id="mission"
  ref={sectionRef}
- className="py-40 relative bg-black overflow-hidden"
+ className="py-40 relative bg-transparent overflow-hidden"
  onMouseMove={handleMouseMove}
  >
  {/* Background HUD Elements */}
