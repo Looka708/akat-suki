@@ -752,7 +752,7 @@ export async function generateDoubleEliminationBracket(tournamentId: string) {
 export async function getTournamentMatches(tournamentId: string) {
     const { data: matches, error } = await supabaseAdmin.from('tournament_matches')
         .select(`
-            id, tournament_id, team1_id, team2_id, winner_id, team1_score, team2_score, round, state, phase, group_id, match_format, created_at, scheduled_time,
+            id, tournament_id, team1_id, team2_id, winner_id, team1_score, team2_score, round, state, phase, group_id, match_format, created_at, scheduled_time, opendota_match_id,
             team1:team1_id(name, logo_url),
             team2:team2_id(name, logo_url),
             winner:winner_id(name)

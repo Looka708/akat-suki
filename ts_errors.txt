@@ -1,0 +1,1 @@
+app/tournament/[id]/brackets/page.tsx(438,76): error TS2339: Property 'opendota_match_id' does not exist on type 'Match'.

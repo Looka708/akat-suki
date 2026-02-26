@@ -71,7 +71,7 @@ export async function getMatchDetails(matchId: string) {
 /**
  * Verifies if a specific team won a match by checking their Steam IDs against the match data.
  */
-export async function verifyMatchOutcome(matchId: string, teamSteamIds: string[]): Promise<boolean> {
+export async function verifyMatchOutcome(matchId: string, teamSteamIds: string[]): Promise<{ teamWon: boolean, matchData: any }> {
     const data = await getMatchDetails(matchId)
     if (!data || !data.players) {
         throw new Error('Match details not found or invalid')
@@ -99,5 +99,6 @@ export async function verifyMatchOutcome(matchId: string, teamSteamIds: string[]
     const isTeamRadiant = radiantCount > direCount
 
     // Returns true if the team's faction matches the winning faction
-    return isTeamRadiant === data.radiant_win
+    const teamWon = isTeamRadiant === data.radiant_win;
+    return { teamWon, matchData: data };
 }

@@ -16,6 +16,16 @@ interface PlayerData {
     role_2: string
     role_3: string
     ping: string
+    player_stats: {
+        matches_played?: number
+        kills?: number
+        deaths?: number
+        assists?: number
+        hero_damage?: number
+        gpm_sum?: number
+        xpm_sum?: number
+        net_worth_sum?: number
+    } | null
     captain_notes: string
     joined_at: string
     team_id: string
@@ -318,6 +328,19 @@ export default function PlayerPoolPage() {
                                                 </div>
                                                 {player.captain_notes && isHovered && (
                                                     <p className="text-[9px] text-zinc-500 font-mono mt-0.5 truncate max-w-[250px]">"{player.captain_notes}"</p>
+                                                )}
+                                                {player.player_stats && (player.player_stats.matches_played || 0) > 0 && isHovered && (
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">{player.player_stats.matches_played} matches</span>
+                                                        <span className="text-[8px] font-mono font-bold">
+                                                            <span className="text-green-400">{player.player_stats.kills}</span>{' / '}
+                                                            <span className="text-red-400">{player.player_stats.deaths}</span>{' / '}
+                                                            <span className="text-zinc-400">{player.player_stats.assists}</span>
+                                                        </span>
+                                                        <span className="text-[8px] font-mono text-yellow-500">
+                                                            {Math.round((player.player_stats.gpm_sum || 0) / (player.player_stats.matches_played || 1))} avg GPM
+                                                        </span>
+                                                    </div>
                                                 )}
                                                 {/* Mobile-only extras */}
                                                 <div className="md:hidden flex items-center gap-3 mt-1">

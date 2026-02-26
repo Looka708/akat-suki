@@ -22,6 +22,7 @@ export async function GET(request: Request) {
                 role_2,
                 role_3,
                 ping,
+                player_stats,
                 captain_notes,
                 joined_at,
                 team_id,

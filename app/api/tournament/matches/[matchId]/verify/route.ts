@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { updateMatchScore } from '@/lib/tournament-db'
 import { getAdminUser } from '@/lib/admin-auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { verifyMatchOutcome } from '@/lib/dota-api'
+import { verifyMatchOutcome, toAccountId32 } from '@/lib/dota-api'
 
 export async function POST(
     request: Request,
@@ -62,11 +62,13 @@ export async function POST(
         let winnerId: string | null = null
         let team1Score = 0
         let team2Score = 0
+        let matchDataToSave: any = null
 
         try {
             if (team1SteamIds.length > 0) {
-                const team1Won = await verifyMatchOutcome(dotaMatchId, team1SteamIds)
-                if (team1Won) {
+                const { teamWon, matchData } = await verifyMatchOutcome(dotaMatchId, team1SteamIds)
+                matchDataToSave = matchData
+                if (teamWon) {
                     winnerId = dbMatch.team1_id
                     team1Score = 1
                 } else {
@@ -74,8 +76,9 @@ export async function POST(
                     team2Score = 1
                 }
             } else if (team2SteamIds.length > 0) {
-                const team2Won = await verifyMatchOutcome(dotaMatchId, team2SteamIds)
-                if (team2Won) {
+                const { teamWon, matchData } = await verifyMatchOutcome(dotaMatchId, team2SteamIds)
+                matchDataToSave = matchData
+                if (teamWon) {
                     winnerId = dbMatch.team2_id
                     team2Score = 1
                 } else {
@@ -89,6 +92,48 @@ export async function POST(
 
         if (!winnerId) {
             return NextResponse.json({ error: 'Could not determine winner from OpenDota.' }, { status: 400 })
+        }
+
+        // Save OpenDota stats before finishing
+        if (matchDataToSave) {
+            await supabaseAdmin.from('tournament_matches').update({
+                opendota_match_id: dotaMatchId,
+                match_stats: matchDataToSave
+            }).eq('id', matchId)
+
+            if (matchDataToSave.players) {
+                const { data: allMatchPlayers } = await supabaseAdmin
+                    .from('tournament_players')
+                    .select('id, steam_id, player_stats')
+                    .in('team_id', [dbMatch.team1_id, dbMatch.team2_id])
+                    .not('steam_id', 'is', null)
+
+                if (allMatchPlayers && allMatchPlayers.length > 0) {
+                    for (const p of allMatchPlayers) {
+                        const accIdStr = toAccountId32(p.steam_id)
+                        const dotaP = matchDataToSave.players.find((dp: any) => dp.account_id && dp.account_id.toString() === accIdStr)
+
+                        if (dotaP) {
+                            const currentStats = p.player_stats || {}
+                            const newStats = {
+                                matches_played: (currentStats.matches_played || 0) + 1,
+                                kills: (currentStats.kills || 0) + (dotaP.kills || 0),
+                                deaths: (currentStats.deaths || 0) + (dotaP.deaths || 0),
+                                assists: (currentStats.assists || 0) + (dotaP.assists || 0),
+                                hero_damage: (currentStats.hero_damage || 0) + (dotaP.hero_damage || 0),
+                                gpm_sum: (currentStats.gpm_sum || 0) + (dotaP.gold_per_min || 0),
+                                xpm_sum: (currentStats.xpm_sum || 0) + (dotaP.xp_per_min || 0),
+                                net_worth_sum: (currentStats.net_worth_sum || 0) + (dotaP.net_worth || 0)
+                            }
+
+                            await supabaseAdmin
+                                .from('tournament_players')
+                                .update({ player_stats: newStats })
+                                .eq('id', p.id)
+                        }
+                    }
+                }
+            }
         }
 
         const updatedMatch = await updateMatchScore(matchId, team1Score, team2Score, winnerId)

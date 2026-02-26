@@ -40,6 +40,7 @@ interface Match {
     phase: string
     match_format: string
     scheduled_time: string | null
+    opendota_match_id?: string | null
     team1: { id: string; name: string; logo_url: string | null } | null
     team2: { id: string; name: string; logo_url: string | null } | null
     winner: { name: string } | null
@@ -434,11 +435,18 @@ export default function BracketsPage() {
                                                                 <span className={`text-[9px] font-bold uppercase tracking-[0.2em] ${isCompleted ? 'text-green-400' : isLive ? 'text-yellow-400' : 'text-zinc-500'}`}>
                                                                     {isCompleted ? '✓ Completed' : isLive ? '● Live Now' : isBye ? 'Bye Match' : 'Upcoming'}
                                                                 </span>
-                                                                {match.scheduled_time && (
-                                                                    <span className="text-[9px] text-zinc-600 font-mono">
-                                                                        {new Date(match.scheduled_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                                                    </span>
-                                                                )}
+                                                                <div className="flex items-center gap-3">
+                                                                    {match.opendota_match_id && (
+                                                                        <Link href={`/tournament/matches/${match.id}`} className="px-2 py-0.5 bg-[#dc143c]/10 text-[#dc143c] hover:bg-[#dc143c] hover:text-white transition-colors text-[9px] uppercase tracking-widest font-bold rounded-[2px] border border-[#dc143c]/30">
+                                                                            Analytics
+                                                                        </Link>
+                                                                    )}
+                                                                    {match.scheduled_time && (
+                                                                        <span className="text-[9px] text-zinc-600 font-mono">
+                                                                            {new Date(match.scheduled_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
 
                                                             {/* Team 1 Players */}
