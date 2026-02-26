@@ -65,11 +65,17 @@ export async function GET(request: NextRequest) {
             email: discordUser.email,
         })
 
-        // Join server in background to avoid blocking redirect
+        // Attempt to add user to the server (with a 3-second timeout to prevent login hangs)
         const guildId = process.env.DISCORD_GUILD_ID
         if (guildId) {
-            joinDiscordServer(guildId, discordUser.id, tokenResponse.access_token)
-                .catch(err => console.error('Background server join error:', err))
+            try {
+                await Promise.race([
+                    joinDiscordServer(guildId, discordUser.id, tokenResponse.access_token),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout joining server')), 3000))
+                ])
+            } catch (err) {
+                console.error('Non-fatal error joining server:', err)
+            }
         }
 
 

@@ -5,11 +5,11 @@ import { requirePermission } from '@/lib/admin-auth'
 
 export async function POST(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ teamId: string }> }
 ) {
     try {
         await requirePermission(PERMISSIONS.EDIT_CONTENT)
-        const { id } = await params
+        const { teamId } = await params
         const { tournamentId } = await request.json()
 
         if (!tournamentId) {
@@ -19,7 +19,7 @@ export async function POST(
         const { error } = await supabaseAdmin
             .from('tournament_teams')
             .update({ tournament_id: tournamentId })
-            .eq('id', id)
+            .eq('id', teamId)
 
         if (error) throw error
 
