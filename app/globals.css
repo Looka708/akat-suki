@@ -14,7 +14,7 @@ body {
   color: white;
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   overflow-x: hidden;
-  cursor: url('http://www.rw-designer.com/cursor-extern.php?id=165364'), auto;
+  cursor: url('/sharingan.cur'), auto;
 }
 
 /* Custom cursors for pointer elements to match the Sharingan theme */
@@ -24,7 +24,7 @@ button,
 input[type="submit"],
 input[type="button"],
 .cursor-pointer {
-  cursor: url('http://www.rw-designer.com/cursor-extern.php?id=165364'), pointer;
+  cursor: url('/sharingan.cur'), pointer;
 }
 
 /* Custom Scrollbar */
