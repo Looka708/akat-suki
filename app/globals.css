@@ -18,21 +18,7 @@ body {
 
 body,
 body * {
-  cursor: url('/sharingan_cursor.png'), auto !important;
-}
-
-/* Custom cursors for pointer elements to match the Sharingan theme */
-a,
-a *,
-button,
-button *,
-[role="button"],
-[role="button"] *,
-input[type="submit"],
-input[type="button"],
-.cursor-pointer,
-.cursor-pointer * {
-  cursor: url('/sharingan_cursor.png'), pointer !important;
+  cursor: none !important;
 }
 
 /* Custom Scrollbar */

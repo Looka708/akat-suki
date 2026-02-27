@@ -66,6 +66,8 @@ export const metadata: Metadata = {
 
 
 
+import CustomCursor from '@/components/CustomCursor'
+
 export default function RootLayout({
     children,
 }: {
@@ -74,6 +76,7 @@ export default function RootLayout({
     return (
         <html lang="en" className={`${inter.variable} ${rajdhani.variable}`}>
             <body className="bg-[#050505] text-white">
+                <CustomCursor />
                 <AuthProvider>
                     <BackgroundEffects />
                     <MiniTwitchPlayer />
