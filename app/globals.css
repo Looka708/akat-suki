@@ -16,11 +16,6 @@ body {
   overflow-x: hidden;
 }
 
-body,
-body * {
-  cursor: none !important;
-}
-
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;

@@ -277,7 +277,13 @@ export default function Tournaments() {
  ⚔ VIEW LIVE BRACKETS
  </Link>
  <Link
- href={`/tournament/${tournament.id}/leaderboard`}
+  href={`/tournament/${tournament.id}`}
+  className="block w-full py-4 bg-white/5 border border-white/10 text-white hover:bg-white/10 text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-lg"
+  >
+  📜 VIEW PUBLIC TOURNAMENT HUB
+  </Link>
+  <Link
+  href={`/tournament/${tournament.id}/leaderboard`}
  className="block w-full py-3 bg-white/5 border border-white/10 text-white hover:bg-white/10 text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-lg"
  >
  VIEW LEADERBOARD
@@ -344,8 +350,13 @@ export default function Tournaments() {
  href="/tournament/register"
  className="block w-full py-5 bg-[#dc143c]/20 border border-[#dc143c]/50 hover:bg-[#dc143c] hover:text-white text-[#dc143c] text-xs font-bold uppercase tracking-[0.5em] transition-all rounded-lg "
  >
- Create New Squad
- </Link>
+ Create New Squad</Link>
+  <Link
+  href={`/tournament/${tournament.id}`}
+  className="mt-3 block w-full py-4 bg-white/5 border border-white/10 text-white hover:bg-white/10 text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-lg"
+  >
+  📜 VIEW PUBLIC TOURNAMENT HUB
+  </Link>
  {matchCount > 0 && (
  <Link
  href={`/tournament/${tournament.id}/brackets`}
@@ -463,7 +474,13 @@ export default function Tournaments() {
  </div>
  <div className="mt-4 flex flex-col gap-3">
  <Link
- href={`/tournament/${tournament.id}/leaderboard`}
+  href={`/tournament/${tournament.id}`}
+  className="block w-full py-4 bg-white/5 border border-white/10 text-white hover:bg-white/10 text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-lg"
+  >
+  📜 VIEW PUBLIC TOURNAMENT HUB
+  </Link>
+  <Link
+  href={`/tournament/${tournament.id}/leaderboard`}
  className="block w-full py-4 bg-transparent border border-[#dc143c]/30 text-[#dc143c] hover:bg-[#dc143c]/10 text-center text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-lg"
  >
  VIEW TOURNAMENT LEADERBOARD
