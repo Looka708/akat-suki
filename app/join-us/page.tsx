@@ -5,13 +5,13 @@ const JoinTeam = dynamic(() => import('@/components/JoinTeam'))
 const Footer = dynamic(() => import('@/components/Footer'))
 
 export default function JoinUsPage() {
-    return (
-        <main className="min-h-screen bg-black text-white">
-            <Navbar />
-            <div className="pt-20">
-                <JoinTeam />
-            </div>
-            <Footer />
-        </main>
-    )
+ return (
+ <main className="min-h-screen bg-transparent text-white">
+ <Navbar />
+ <div className="pt-20">
+ <JoinTeam />
+ </div>
+ <Footer />
+ </main>
+ )
 }
