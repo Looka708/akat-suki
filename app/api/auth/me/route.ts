@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const session = await getUserFromSession()
 
     if (!session) {
-        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+        return NextResponse.json({ user: null }, { status: 200 })
     }
 
     // Fetch latest user data from DB to ensure avatar and other info is current

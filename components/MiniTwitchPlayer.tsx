@@ -60,7 +60,6 @@ export default function MiniTwitchPlayer() {
                         src={`https://player.twitch.tv/?channel=${channel}&parent=${hostname}&parent=localhost&parent=akat-suki.site&muted=true&autoplay=true`}
                         className="w-full h-full border-none"
                         allow="autoplay; fullscreen"
-                        allowFullScreen
                     ></iframe>
                 )}
             </div>
