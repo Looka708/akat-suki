@@ -14,17 +14,25 @@ body {
   color: white;
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   overflow-x: hidden;
-  cursor: url('/sharingan.cur'), auto;
+}
+
+body,
+body * {
+  cursor: url('/sharingan.cur'), auto !important;
 }
 
 /* Custom cursors for pointer elements to match the Sharingan theme */
 a,
+a *,
 button,
+button *,
 [role="button"],
+[role="button"] *,
 input[type="submit"],
 input[type="button"],
-.cursor-pointer {
-  cursor: url('/sharingan.cur'), pointer;
+.cursor-pointer,
+.cursor-pointer * {
+  cursor: url('/sharingan.cur'), pointer !important;
 }
 
 /* Custom Scrollbar */
