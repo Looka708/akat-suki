@@ -5,6 +5,7 @@ import BackgroundEffects from '@/components/BackgroundEffects'
 import { AuthProvider } from '@/components/AuthProvider'
 import MiniTwitchPlayer from '@/components/MiniTwitchPlayer'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({
     subsets: ['latin'],
@@ -78,6 +79,18 @@ export default function RootLayout({
                     <ErrorBoundary>
                         {children}
                     </ErrorBoundary>
+                    <Toaster
+                        position="bottom-right"
+                        toastOptions={{
+                            style: {
+                                background: '#0a0e1a',
+                                color: '#fff',
+                                border: '1px solid rgba(220, 20, 60, 0.3)',
+                                borderRadius: '8px',
+                                fontFamily: 'var(--font-mono)',
+                            },
+                        }}
+                    />
                 </AuthProvider>
             </body>
         </html>
