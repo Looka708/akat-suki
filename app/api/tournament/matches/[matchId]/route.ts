@@ -11,6 +11,8 @@ const MatchUpdateSchema = z.object({
     state: z.enum(['pending', 'live', 'completed']).optional(),
     scheduledTime: z.string().optional().nullable(),
     seriesFormat: z.enum(['bo1', 'bo3', 'bo5']).optional().nullable(),
+    opendotaMatchId: z.string().optional().nullable(),
+    streamUrl: z.string().url().optional().nullable().or(z.literal('')),
 })
 
 export async function PUT(
@@ -30,15 +32,17 @@ export async function PUT(
             return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
         }
 
-        const { team1Score, team2Score, winnerId, state, scheduledTime, seriesFormat } = parsed.data
+        const { team1Score, team2Score, winnerId, state, scheduledTime, seriesFormat, opendotaMatchId, streamUrl } = parsed.data
 
         if (state && team1Score === undefined && team2Score === undefined) {
-            // Just updating state, schedule, or series format
+            // Just updating state, schedule, format, or links
             const { error: updateErr } = await supabaseAdmin.from('tournament_matches')
                 .update({
                     state,
                     scheduled_time: scheduledTime,
-                    series_format: seriesFormat === undefined ? undefined : seriesFormat
+                    series_format: seriesFormat === undefined ? undefined : seriesFormat,
+                    opendota_match_id: opendotaMatchId,
+                    stream_url: streamUrl === '' ? null : streamUrl,
                 })
                 .eq('id', matchId)
 

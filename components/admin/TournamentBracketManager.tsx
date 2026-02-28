@@ -22,12 +22,12 @@ export default function TournamentBracketManager({
     const router = useRouter()
     const [updating, setUpdating] = useState<string | null>(null)
     const [scores, setScores] = useState<Record<string, { t1: number, t2: number }>>({})
-    const [verifyIds, setVerifyIds] = useState<Record<string, string>>({})
-    const [verifyError, setVerifyError] = useState<Record<string, string>>({})
     const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
     const [scheduleTimes, setScheduleTimes] = useState<Record<string, string>>({})
     const [seriesFormats, setSeriesFormats] = useState<Record<string, string>>({})
+    const [streamUrls, setStreamUrls] = useState<Record<string, string>>({})
+    const [matchIds, setMatchIds] = useState<Record<string, string>>({})
     const [selectedRosterTeam, setSelectedRosterTeam] = useState<any>(null)
 
     if (challongeUrl) {
@@ -108,20 +108,18 @@ export default function TournamentBracketManager({
         finally { setUpdating(null) }
     }
 
-    const handleVerify = async (matchId: string) => {
-        const dotaMatchId = verifyIds[matchId]
-        if (!dotaMatchId) { setVerifyError(prev => ({ ...prev, [matchId]: 'Enter a Dota Match ID' })); return }
-        setUpdating(matchId)
-        setVerifyError(prev => ({ ...prev, [matchId]: '' }))
+    const handleForceWin = async (m: any, winnerId: string) => {
+        if (!confirm(`Force a win for this team?`)) return
+        const s = scores[m.id] || { t1: 0, t2: 0 }
+        setUpdating(m.id)
         try {
-            const res = await fetch(`/api/tournament/matches/${matchId}/verify`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dotaMatchId })
+            const res = await fetch(`/api/tournament/matches/${m.id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ team1Score: s.t1, team2Score: s.t2, winnerId })
             })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Verification failed')
+            if (!res.ok) throw new Error('Failed to force win')
             router.refresh()
-        } catch (err: any) { setVerifyError(prev => ({ ...prev, [matchId]: err.message })) }
+        } catch { alert('Failed to force match win.') }
         finally { setUpdating(null) }
     }
 
@@ -195,12 +193,17 @@ export default function TournamentBracketManager({
     const handleScheduleMatch = async (matchId: string) => {
         const time = scheduleTimes[matchId]
         const format = seriesFormats[matchId]
-        if (!time && !format) return
+        const streamUrl = streamUrls[matchId]
+        const opendotaMatchId = matchIds[matchId]
+
+        if (!time && !format && streamUrl === undefined && opendotaMatchId === undefined) return
         setUpdating(matchId)
         try {
             const body: any = { state: 'pending' }
             if (time) body.scheduledTime = new Date(time).toISOString()
             if (format) body.seriesFormat = format
+            if (streamUrl !== undefined) body.streamUrl = streamUrl
+            if (opendotaMatchId !== undefined) body.opendotaMatchId = opendotaMatchId
 
             const res = await fetch(`/api/tournament/matches/${matchId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -423,26 +426,44 @@ export default function TournamentBracketManager({
                                                 <>
                                                     {/* Score inputs */}
                                                     <div>
-                                                        <p className="text-[8px] text-zinc-500 font-mono uppercase tracking-widest mb-1.5">Set Scores</p>
+                                                        <p className="text-[8px] text-zinc-500 font-mono uppercase tracking-widest mb-1.5 flex justify-between">
+                                                            <span>Set Scores</span>
+                                                            <span>Force Win</span>
+                                                        </p>
                                                         <div className="flex items-center gap-2">
-                                                            <div className="flex-1 flex items-center gap-1.5">
-                                                                <span className="text-[9px] text-zinc-500 font-mono truncate max-w-[80px]">{m.team1?.name}</span>
-                                                                <input type="number" min="0"
-                                                                    className="w-10 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-1.5 py-1 text-center font-mono text-xs"
-                                                                    value={scores[m.id]?.t1 ?? 0}
-                                                                    onClick={e => e.stopPropagation()}
-                                                                    onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: parseInt(e.target.value) || 0, t2: prev[m.id]?.t2 ?? 0 } }))}
-                                                                />
+                                                            <div className="flex-1 flex flex-col gap-1.5">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-[9px] text-zinc-500 font-mono truncate max-w-[80px] flex-1">{m.team1?.name}</span>
+                                                                    <input type="number" min="0"
+                                                                        className="w-10 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-1.5 py-1 text-center font-mono text-xs"
+                                                                        value={scores[m.id]?.t1 ?? 0}
+                                                                        onClick={e => e.stopPropagation()}
+                                                                        onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: parseInt(e.target.value) || 0, t2: prev[m.id]?.t2 ?? 0 } }))}
+                                                                    />
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleForceWin(m, m.team1_id) }}
+                                                                        disabled={isUpdating || !m.team1_id}
+                                                                        className="px-1.5 py-1 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500/70 hover:text-yellow-400 text-[10px] rounded-[2px] border border-yellow-500/20 transition-colors disabled:opacity-30"
+                                                                        title="Force Win for Team 1"
+                                                                    >🏆</button>
+                                                                </div>
                                                             </div>
-                                                            <span className="text-zinc-700 text-xs">vs</span>
-                                                            <div className="flex-1 flex items-center gap-1.5 justify-end">
-                                                                <input type="number" min="0"
-                                                                    className="w-10 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-1.5 py-1 text-center font-mono text-xs"
-                                                                    value={scores[m.id]?.t2 ?? 0}
-                                                                    onClick={e => e.stopPropagation()}
-                                                                    onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: prev[m.id]?.t1 ?? 0, t2: parseInt(e.target.value) || 0 } }))}
-                                                                />
-                                                                <span className="text-[9px] text-zinc-500 font-mono truncate max-w-[80px]">{m.team2?.name}</span>
+                                                            <div className="flex-1 flex flex-col gap-1.5">
+                                                                <div className="flex items-center gap-1.5 justify-end">
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleForceWin(m, m.team2_id) }}
+                                                                        disabled={isUpdating || !m.team2_id}
+                                                                        className="px-1.5 py-1 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500/70 hover:text-yellow-400 text-[10px] rounded-[2px] border border-yellow-500/20 transition-colors disabled:opacity-30"
+                                                                        title="Force Win for Team 2"
+                                                                    >🏆</button>
+                                                                    <input type="number" min="0"
+                                                                        className="w-10 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-1.5 py-1 text-center font-mono text-xs"
+                                                                        value={scores[m.id]?.t2 ?? 0}
+                                                                        onClick={e => e.stopPropagation()}
+                                                                        onChange={(e) => setScores(prev => ({ ...prev, [m.id]: { t1: prev[m.id]?.t1 ?? 0, t2: parseInt(e.target.value) || 0 } }))}
+                                                                    />
+                                                                    <span className="text-[9px] text-zinc-500 font-mono truncate max-w-[80px] flex-1 text-right">{m.team2?.name}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -476,7 +497,7 @@ export default function TournamentBracketManager({
                                                         </div>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleScheduleMatch(m.id) }}
-                                                            disabled={isUpdating || (!scheduleTimes[m.id] && !seriesFormats[m.id])}
+                                                            disabled={isUpdating}
                                                             className="w-full py-1 bg-white/5 hover:bg-white/10 text-white text-[9px] font-bold uppercase rounded-[2px] border border-white/10 transition-colors disabled:opacity-40"
                                                         >Save Settings</button>
                                                     </div>
@@ -497,24 +518,23 @@ export default function TournamentBracketManager({
                                                         >✓ COMPLETE</button>
                                                     </div>
 
-                                                    {/* OpenDota verify */}
-                                                    <div className="pt-2 border-t border-white/5">
-                                                        <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mb-1">OpenDota Auto-Verify</p>
-                                                        <div className="flex gap-1">
-                                                            <input
-                                                                type="text" placeholder="Dota Match ID"
-                                                                className="flex-1 bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono placeholder:text-zinc-800"
-                                                                value={verifyIds[m.id] || ''}
-                                                                onClick={e => e.stopPropagation()}
-                                                                onChange={e => setVerifyIds(prev => ({ ...prev, [m.id]: e.target.value }))}
-                                                            />
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleVerify(m.id) }}
-                                                                disabled={isUpdating}
-                                                                className="px-2 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 text-[9px] font-bold uppercase rounded-[2px] border border-sky-500/30"
-                                                            >VERIFY</button>
-                                                        </div>
-                                                        {verifyError[m.id] && <p className="text-[8px] text-red-400 font-mono mt-1">{verifyError[m.id]}</p>}
+                                                    {/* Match Links & Data */}
+                                                    <div className="pt-2 border-t border-white/5 space-y-2">
+                                                        <p className="text-[8px] text-zinc-600 font-mono uppercase tracking-widest mb-1">Match Links & Data</p>
+                                                        <input
+                                                            type="text" placeholder="Match ID (OpenDota / Steam)"
+                                                            className="w-full bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono placeholder:text-zinc-800"
+                                                            value={matchIds[m.id] !== undefined ? matchIds[m.id] : (m.opendota_match_id || '')}
+                                                            onClick={e => e.stopPropagation()}
+                                                            onChange={e => setMatchIds(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                        />
+                                                        <input
+                                                            type="url" placeholder="Stream URL (e.g. Twitch link)"
+                                                            className="w-full bg-zinc-950 border border-white/10 text-white rounded-[2px] px-2 py-1 text-[10px] font-mono placeholder:text-zinc-800"
+                                                            value={streamUrls[m.id] !== undefined ? streamUrls[m.id] : (m.stream_url || '')}
+                                                            onClick={e => e.stopPropagation()}
+                                                            onChange={e => setStreamUrls(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                        />
                                                     </div>
                                                 </>
                                             )}

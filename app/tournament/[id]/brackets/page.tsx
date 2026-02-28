@@ -41,6 +41,7 @@ interface Match {
     match_format: string
     scheduled_time: string | null
     opendota_match_id?: string | null
+    stream_url?: string | null
     team1: { id: string; name: string; logo_url: string | null } | null
     team2: { id: string; name: string; logo_url: string | null } | null
     winner: { name: string } | null
@@ -490,6 +491,11 @@ export default function BracketsPage() {
                                                                     {isCompleted ? '✓ Completed' : isLive ? '● Live Now' : isBye ? 'Bye Match' : 'Upcoming'}
                                                                 </span>
                                                                 <div className="flex items-center gap-3">
+                                                                    {match.stream_url && (
+                                                                        <a href={match.stream_url} target="_blank" rel="noreferrer" className="px-2 py-0.5 bg-[#9146FF]/10 text-[#9146FF] hover:bg-[#9146FF] hover:text-white transition-colors text-[9px] uppercase tracking-widest font-bold rounded-[2px] border border-[#9146FF]/30 flex items-center gap-1">
+                                                                            ▶ Watch Live
+                                                                        </a>
+                                                                    )}
                                                                     {match.opendota_match_id && (
                                                                         <Link href={`/tournament/matches/${match.id}`} className="px-2 py-0.5 bg-[#dc143c]/10 text-[#dc143c] hover:bg-[#dc143c] hover:text-white transition-colors text-[9px] uppercase tracking-widest font-bold rounded-[2px] border border-[#dc143c]/30">
                                                                             Analytics
