@@ -28,6 +28,7 @@ export default function TournamentBracketManager({
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
     const [scheduleTimes, setScheduleTimes] = useState<Record<string, string>>({})
     const [seriesFormats, setSeriesFormats] = useState<Record<string, string>>({})
+    const [selectedRosterTeam, setSelectedRosterTeam] = useState<any>(null)
 
     if (challongeUrl) {
         return (
@@ -255,11 +256,17 @@ export default function TournamentBracketManager({
                                 'border-dashed border-white/10 bg-transparent'
                     }`}
             >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer hover:bg-white/5 rounded px-1 transition-colors" onClick={(e) => {
+                    e.stopPropagation()
+                    if (teamId) {
+                        const tInfo = teams.find(t => t.id === teamId)
+                        if (tInfo) setSelectedRosterTeam(tInfo)
+                    }
+                }}>
                     {teamId && (
                         <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isWinner ? 'bg-green-400' : isLoser ? 'bg-red-400' : 'bg-zinc-600'}`} />
                     )}
-                    <span className={`font-mono truncate text-[11px] ${isWinner ? 'text-green-400 font-bold' :
+                    <span className={`font-mono truncate text-[11px] hover:text-[#dc143c] transition-colors ${isWinner ? 'text-green-400 font-bold' :
                         isLoser ? 'text-red-400/70' :
                             teamId ? 'text-white' : 'text-zinc-700 italic'
                         }`}>
@@ -285,13 +292,18 @@ export default function TournamentBracketManager({
     }
 
     return (
-        <div className="bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden">
+        <div className="bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden relative">
             <div className="p-4 border-b border-white/10 flex items-center justify-between">
                 <h2 className="text-sm font-rajdhani font-bold text-white uppercase tracking-[0.2em] flex items-center gap-3">
                     <span className="w-4 h-1 bg-[#dc143c]"></span>
                     Visual Bracket
                 </h2>
-                <span className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest">Drag teams to swap positions</span>
+                <div className="flex gap-4">
+                    <span className="text-[9px] text-zinc-600 font-mono uppercase tracking-widest leading-relaxed text-right">
+                        Drag teams to swap positions<br />
+                        Click team name for roster
+                    </span>
+                </div>
             </div>
 
             <div className="overflow-x-auto p-6">
@@ -544,16 +556,52 @@ export default function TournamentBracketManager({
                                         e.dataTransfer.setData('sourceTeamId', team.id);
                                         e.dataTransfer.effectAllowed = 'move';
                                     }}
+                                    onClick={() => setSelectedRosterTeam(team)}
                                     className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-sm text-xs text-white font-mono cursor-grab active:cursor-grabbing hover:bg-white/10 hover:border-[#dc143c]/40 transition-colors flex items-center gap-2"
                                 >
                                     <div className="w-1.5 h-1.5 rounded-full bg-zinc-500"></div>
-                                    {team.name}
+                                    <span className="cursor-pointer hover:text-[#dc143c] transition-colors">{team.name}</span>
                                 </div>
                             ))}
                         </div>
                     ) : (
                         <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">All teams have been assigned to matches.</p>
                     )}
+                </div>
+            )}
+
+            {/* Team Roster Modal Overlay */}
+            {selectedRosterTeam && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 cursor-default" onClick={() => setSelectedRosterTeam(null)}>
+                    <div className="bg-zinc-950 border border-white/10 rounded-sm max-w-sm w-full shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
+                            <h3 className="text-lg font-rajdhani font-bold text-white tracking-widest uppercase">{selectedRosterTeam.name} Roster</h3>
+                            <button onClick={() => setSelectedRosterTeam(null)} className="text-zinc-500 hover:text-white transition-colors">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-2">
+                            {selectedRosterTeam.tournament_players?.length > 0 ? (
+                                selectedRosterTeam.tournament_players.map((p: any) => (
+                                    <div key={p.id} className="flex flex-row items-center gap-3 p-3 border border-white/5 bg-white/[0.01] rounded hover:border-white/10 transition-colors">
+                                        <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden flex items-center justify-center">
+                                            {p.users?.avatar ? (
+                                                <img src={p.users.avatar} alt={p.users.username} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-[10px] text-zinc-500 font-bold">{p.users?.username?.charAt(0) || '?'}</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="font-mono text-sm text-white">{p.users?.username || 'Unknown User'}</p>
+                                            {p.user_id === selectedRosterTeam.captain_id && <p className="text-[9px] text-[#dc143c] font-bold uppercase tracking-widest">Captain</p>}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-zinc-500 font-mono text-center py-4">No players seeded on this team</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

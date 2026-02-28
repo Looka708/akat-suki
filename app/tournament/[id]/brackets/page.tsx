@@ -89,6 +89,7 @@ export default function BracketsPage() {
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
     const [dotaProfiles, setDotaProfiles] = useState<Record<string, any>>({})
     const [loadingProfiles, setLoadingProfiles] = useState<Record<string, boolean>>({})
+    const [selectedRosterTeam, setSelectedRosterTeam] = useState<Team | null>(null)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -398,24 +399,34 @@ export default function BracketsPage() {
                                                             {/* Team 1 */}
                                                             <div className={`flex items-center justify-between px-3 flex-1 transition-colors ${match.winner_id === match.team1_id ? 'bg-[#dc143c]/[0.08]' : ''}`}>
                                                                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                                    <div className={`w-5 h-5 rounded-[2px] flex items-center justify-center shrink-0 overflow-hidden text-[8px] font-bold
-                                                                        ${match.winner_id === match.team1_id ? 'bg-[#dc143c]/20 text-[#dc143c] border border-[#dc143c]/30' : 'bg-white/5 text-zinc-500 border border-white/10'}`}>
+                                                                    <div className={`w-5 h-5 rounded-[2px] flex items-center justify-center shrink-0 overflow-hidden text-[8px] font-bold cursor-pointer hover:border-white/50 transition-colors
+                                                                        ${match.winner_id === match.team1_id ? 'bg-[#dc143c]/20 text-[#dc143c] border border-[#dc143c]/30' : 'bg-white/5 text-zinc-500 border border-white/10'}`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (match.team1_id) {
+                                                                                const t = getTeamData(match.team1_id);
+                                                                                if (t) setSelectedRosterTeam(t);
+                                                                            }
+                                                                        }}>
                                                                         {match.team1?.logo_url ? (
-                                                                            <Link href={`/tournament/${tournamentId}/team/${match.team1_id}`} onClick={e => e.stopPropagation()} className="w-full h-full block">
-                                                                                <img src={match.team1.logo_url} alt="" className="w-full h-full object-cover" />
-                                                                            </Link>
+                                                                            <img src={match.team1.logo_url} alt="" className="w-full h-full object-cover" />
                                                                         ) : (
                                                                             <span className="text-[10px] uppercase">{match.team1?.name?.[0] || '?'}</span>
                                                                         )}
                                                                     </div>
-                                                                    <Link
-                                                                        href={`/tournament/${tournamentId}/team/${match.team1_id}`}
-                                                                        onClick={e => e.stopPropagation()}
-                                                                        className={`text-[11px] font-bold uppercase truncate tracking-tight hover:text-[#dc143c] transition-colors
+                                                                    <span
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (match.team1_id) {
+                                                                                const t = getTeamData(match.team1_id);
+                                                                                if (t) setSelectedRosterTeam(t);
+                                                                            }
+                                                                        }}
+                                                                        className={`text-[11px] font-bold uppercase truncate tracking-tight hover:text-[#dc143c] transition-colors cursor-pointer
                                                                         ${match.team1_id ? 'text-white' : 'text-zinc-600 italic'}`}
                                                                     >
                                                                         {match.team1?.name || (isBye ? 'BYE' : 'TBD')}
-                                                                    </Link>
+                                                                    </span>
                                                                 </div>
                                                                 <span className={`font-mono font-bold text-sm ml-2 min-w-[20px] text-right
                                                                     ${match.winner_id === match.team1_id ? 'text-[#dc143c]' : isCompleted ? 'text-zinc-600' : 'text-zinc-700'}`}>
@@ -429,24 +440,34 @@ export default function BracketsPage() {
                                                             {/* Team 2 */}
                                                             <div className={`flex items-center justify-between px-3 flex-1 transition-colors ${match.winner_id === match.team2_id ? 'bg-[#dc143c]/[0.08]' : ''}`}>
                                                                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                                    <div className={`w-5 h-5 rounded-[2px] flex items-center justify-center shrink-0 overflow-hidden text-[8px] font-bold
-                                                                        ${match.winner_id === match.team2_id ? 'bg-[#dc143c]/20 text-[#dc143c] border border-[#dc143c]/30' : 'bg-white/5 text-zinc-500 border border-white/10'}`}>
+                                                                    <div className={`w-5 h-5 rounded-[2px] flex items-center justify-center shrink-0 overflow-hidden text-[8px] font-bold cursor-pointer hover:border-white/50 transition-colors
+                                                                        ${match.winner_id === match.team2_id ? 'bg-[#dc143c]/20 text-[#dc143c] border border-[#dc143c]/30' : 'bg-white/5 text-zinc-500 border border-white/10'}`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (match.team2_id) {
+                                                                                const t = getTeamData(match.team2_id);
+                                                                                if (t) setSelectedRosterTeam(t);
+                                                                            }
+                                                                        }}>
                                                                         {match.team2?.logo_url ? (
-                                                                            <Link href={`/tournament/${tournamentId}/team/${match.team2_id}`} onClick={e => e.stopPropagation()} className="w-full h-full block">
-                                                                                <img src={match.team2.logo_url} alt="" className="w-full h-full object-cover" />
-                                                                            </Link>
+                                                                            <img src={match.team2.logo_url} alt="" className="w-full h-full object-cover" />
                                                                         ) : (
                                                                             <span className="text-[10px] uppercase">{match.team2?.name?.[0] || '?'}</span>
                                                                         )}
                                                                     </div>
-                                                                    <Link
-                                                                        href={`/tournament/${tournamentId}/team/${match.team2_id}`}
-                                                                        onClick={e => e.stopPropagation()}
-                                                                        className={`text-[11px] font-bold uppercase truncate tracking-tight hover:text-[#dc143c] transition-colors
+                                                                    <span
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (match.team2_id) {
+                                                                                const t = getTeamData(match.team2_id);
+                                                                                if (t) setSelectedRosterTeam(t);
+                                                                            }
+                                                                        }}
+                                                                        className={`text-[11px] font-bold uppercase truncate tracking-tight hover:text-[#dc143c] transition-colors cursor-pointer
                                                                         ${match.team2_id ? 'text-white' : 'text-zinc-600 italic'}`}
                                                                     >
                                                                         {match.team2?.name || (isBye ? 'BYE' : 'TBD')}
-                                                                    </Link>
+                                                                    </span>
                                                                 </div>
                                                                 <span className={`font-mono font-bold text-sm ml-2 min-w-[20px] text-right
                                                                     ${match.winner_id === match.team2_id ? 'text-[#dc143c]' : isCompleted ? 'text-zinc-600' : 'text-zinc-700'}`}>
@@ -599,6 +620,43 @@ export default function BracketsPage() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+                {/* Team Roster Modal Overlay */}
+                {selectedRosterTeam && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 cursor-default" onClick={() => setSelectedRosterTeam(null)}>
+                        <div className="bg-zinc-950 border border-white/10 rounded-sm max-w-sm w-full shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
+                                <h3 className="text-lg font-rajdhani font-bold text-white tracking-widest uppercase">{selectedRosterTeam.name} Roster</h3>
+                                <button onClick={() => setSelectedRosterTeam(null)} className="text-zinc-500 hover:text-white transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <div className="p-4 space-y-2">
+                                {selectedRosterTeam.tournament_players?.length > 0 ? (
+                                    selectedRosterTeam.tournament_players.map((p: any) => (
+                                        <div key={p.id} className="flex flex-row items-center gap-3 p-3 border border-white/5 bg-white/[0.01] rounded hover:border-white/10 transition-colors">
+                                            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden flex items-center justify-center">
+                                                {p.users?.avatar ? (
+                                                    <img src={p.users.avatar} alt={p.users.username} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-[10px] text-zinc-500 font-bold">{p.users?.username?.charAt(0) || '?'}</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="font-mono text-sm text-white">{p.users?.username || 'Unknown User'}</p>
+                                                {p.user_id === selectedRosterTeam.captain_id && <p className="text-[9px] text-[#dc143c] font-bold uppercase tracking-widest">Captain</p>}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-zinc-500 font-mono text-center py-4">No players seeded on this team</p>
+                                )}
+                                <Link href={`/tournament/${tournamentId}/team/${selectedRosterTeam.id}`} className="block w-full text-center py-2 mt-2 bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-[#dc143c] rounded-[2px] transition-colors">
+                                    View Full Team Page
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 )}

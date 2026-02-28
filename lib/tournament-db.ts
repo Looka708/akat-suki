@@ -199,7 +199,10 @@ export async function getTournamentTeams(tournamentId: string) {
         .from('tournament_teams')
         .select(`
             *,
-            tournament_players (count)
+            tournament_players (
+                id, user_id, steam_id,
+                users (username, avatar)
+            )
         `)
         .eq('tournament_id', tournamentId)
 

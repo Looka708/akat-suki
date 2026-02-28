@@ -95,7 +95,7 @@ export default async function TournamentManagementPage({ params }: { params: Pro
                                         </p>
                                     </td>
                                     <td className="p-4 text-sm text-gray-300">
-                                        {team.tournament_players.length > 0 ? team.tournament_players[0].count : 0} / 5
+                                        {team.tournament_players ? team.tournament_players.length : 0} / 5
                                     </td>
                                     <td className="p-4 text-sm text-gray-300">
                                         {team.region || 'Unknown'}
