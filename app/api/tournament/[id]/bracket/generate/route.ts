@@ -28,17 +28,18 @@ export async function POST(
             if (!tournament) throw new Error('Tournament not found')
 
             const teams = await getTournamentTeams(id)
-            if (!teams || teams.length < 2) throw new Error('Not enough teams to generate bracket.')
 
             const challongeRes = await createChallongeTournament(`${tournament.name} - ${id.substring(0, 5)}`, bracketType)
             const challongeId = challongeRes.tournament.url
 
-            // Add teams
-            const teamNames = teams.map((t: any) => t.name)
-            await bulkAddChallongeParticipants(challongeId, teamNames)
+            if (teams && teams.length > 0) {
+                // Add teams
+                const teamNames = teams.map((t: any) => t.name)
+                await bulkAddChallongeParticipants(challongeId, teamNames)
 
-            // Start tournament on Challonge
-            await startChallongeTournament(challongeId)
+                // Start tournament on Challonge
+                await startChallongeTournament(challongeId)
+            }
 
             // Save the URL to supabase
             const fullUrl = challongeRes.tournament.full_challonge_url;

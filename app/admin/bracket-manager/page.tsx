@@ -107,13 +107,13 @@ export default async function BracketManagerPage({
                     </div>
 
                     {/* Generate Bracket Button */}
-                    {matches.length === 0 && teams.length >= 2 && (
+                    {matches.length === 0 && (
                         <div className="bg-[#dc143c]/5 border border-[#dc143c]/20 rounded-sm p-6 flex items-center justify-between">
                             <div>
                                 <p className="text-white font-rajdhani font-bold text-lg">No bracket generated yet</p>
                                 <p className="text-zinc-500 text-sm mt-1">Generate a bracket to start managing matches for {selected.name}.</p>
                             </div>
-                            <BracketGenerator tournamentId={selected.id} disabled={teams.length < 2} teamCount={teams.length} />
+                            <BracketGenerator tournamentId={selected.id} teamCount={teams.length} />
                         </div>
                     )}
 
@@ -141,13 +141,13 @@ export default async function BracketManagerPage({
                         </Link>
                         {matches.length > 0 && (
                             <div className="ml-auto">
-                                <BracketGenerator tournamentId={selected.id} disabled={teams.length < 2} teamCount={teams.length} />
+                                <BracketGenerator tournamentId={selected.id} teamCount={teams.length} />
                             </div>
                         )}
                     </div>
 
                     {/* Bracket Manager Component */}
-                    <TournamentBracketManager matches={matches} tournamentId={selected.id} challongeUrl={selected.challonge_url} />
+                    <TournamentBracketManager teams={teams} matches={matches} tournamentId={selected.id} challongeUrl={selected.challonge_url} />
                 </>
             ) : (
                 <div className="bg-white/[0.02] border border-white/10 rounded-sm p-12 text-center">

@@ -17,8 +17,8 @@ export default function BracketGenerator({ tournamentId, disabled, teamCount }: 
 
     // Find the minimum valid size for current teams
     const minSize = (() => {
-        let s = 2
-        const count = teamCount || 2
+        let s = 4 // Default to at least an empty 4-slot Bracket
+        const count = teamCount || 0
         while (s < count) s *= 2
         return s
     })()
@@ -65,11 +65,11 @@ export default function BracketGenerator({ tournamentId, disabled, teamCount }: 
 
                 <button
                     onClick={() => setShowOptions(!showOptions)}
-                    disabled={generating || disabled}
+                    disabled={generating}
                     className="px-4 py-2 bg-[#dc143c]/10 text-[#dc143c] hover:bg-[#dc143c] hover:text-white transition-colors rounded-sm border border-[#dc143c]/30 text-sm font-bold uppercase tracking-widest disabled:opacity-50 flex items-center gap-2"
                 >
-                    {disabled ? 'REQUIRES MIN 2 TEAMS' : generating ? 'GENERATING...' : 'GENERATE BRACKET'}
-                    {!disabled && !generating && (
+                    {generating ? 'GENERATING...' : 'GENERATE BRACKET'}
+                    {!generating && (
                         <svg className={`w-3 h-3 transition-transform ${showOptions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
@@ -78,7 +78,7 @@ export default function BracketGenerator({ tournamentId, disabled, teamCount }: 
             </div>
 
             {/* Config selector dropdown */}
-            {showOptions && !disabled && (
+            {showOptions && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-black/95 backdrop-blur-xl border border-white/10 rounded-sm shadow-2xl shadow-black/60 z-50 overflow-hidden">
                     <div className="flex border-b border-white/10">
                         <button
@@ -101,7 +101,7 @@ export default function BracketGenerator({ tournamentId, disabled, teamCount }: 
                                 <p className="text-[10px] text-zinc-400 font-mono">Generates the native visual bracket. Best for simple 1v1 formats.</p>
                                 <div className="space-y-1.5">
                                     {BRACKET_SIZES.map(size => {
-                                        const tooSmall = size < (teamCount || 2)
+                                        const tooSmall = teamCount ? size < teamCount : false
                                         const isRecommended = size === minSize
 
                                         return (

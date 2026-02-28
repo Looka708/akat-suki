@@ -11,11 +11,13 @@ const CONNECTOR_WIDTH = 40
 export default function TournamentBracketManager({
     matches,
     tournamentId,
-    challongeUrl
+    challongeUrl,
+    teams = []
 }: {
     matches: any[],
     tournamentId: string,
-    challongeUrl?: string | null
+    challongeUrl?: string | null,
+    teams?: any[]
 }) {
     const router = useRouter()
     const [updating, setUpdating] = useState<string | null>(null)
@@ -56,6 +58,11 @@ export default function TournamentBracketManager({
     const roundNumbers = Object.keys(roundsMap).map(Number).sort((a, b) => a - b)
     const totalRounds = roundNumbers.length > 0 ? Math.max(...roundNumbers) : 0
     const round1Count = roundsMap[roundNumbers[0]]?.length || 0
+
+    // Compute unassigned teams
+    const unassignedTeams = teams.filter(t =>
+        !matches.some((m: any) => m.team1_id === t.id || m.team2_id === t.id)
+    )
 
     const getRoundLabel = (round: number) => {
         if (round === totalRounds) return 'GRAND FINAL'
@@ -160,6 +167,19 @@ export default function TournamentBracketManager({
         finally { setUpdating(null) }
     }
 
+    const handleAssignTeam = async (matchId: string, slot: number, teamId: string) => {
+        setUpdating('assigning')
+        try {
+            const res = await fetch(`/api/tournaments/${tournamentId}/brackets/assign-team`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ matchId, slot, teamId })
+            })
+            if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to assign team') }
+            router.refresh()
+        } catch (err: any) { alert(err.message) }
+        finally { setUpdating(null); setDragOverSlot(null) }
+    }
+
     const handleSetLive = async (matchId: string) => {
         setUpdating(matchId)
         try {
@@ -212,12 +232,21 @@ export default function TournamentBracketManager({
                 onDrop={(e) => {
                     e.preventDefault()
                     setDragOverSlot(null)
-                    handleDropSwap(
-                        e.dataTransfer.getData('sourceMatchId'),
-                        parseInt(e.dataTransfer.getData('sourceSlot')),
-                        e.dataTransfer.getData('sourceTeamId'),
-                        match.id, slot, teamId || ''
-                    )
+
+                    const sourceMatchId = e.dataTransfer.getData('sourceMatchId')
+                    const sourceSlot = e.dataTransfer.getData('sourceSlot')
+                    const sourceTeamId = e.dataTransfer.getData('sourceTeamId')
+
+                    if (sourceMatchId === 'unassigned') {
+                        handleAssignTeam(match.id, slot, sourceTeamId)
+                    } else {
+                        handleDropSwap(
+                            sourceMatchId,
+                            parseInt(sourceSlot),
+                            sourceTeamId,
+                            match.id, slot, teamId || ''
+                        )
+                    }
                 }}
                 className={`group flex items-center justify-between px-3 py-2 rounded-[2px] text-xs transition-all duration-150 border
                     ${isDragOver ? 'border-[#dc143c] bg-[#dc143c]/10 scale-[1.02] shadow-lg shadow-[#dc143c]/20' :
@@ -496,6 +525,37 @@ export default function TournamentBracketManager({
                     })}
                 </div>
             </div>
+
+            {/* Unassigned Teams Sidebar */}
+            {teams.length > 0 && (
+                <div className="border-t border-white/10 bg-black/40 p-4">
+                    <h3 className="text-xs font-rajdhani font-bold text-zinc-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                        Unassigned Teams <span className="bg-white/10 text-white px-1.5 py-0.5 rounded text-[9px]">{unassignedTeams.length}</span>
+                    </h3>
+
+                    {unassignedTeams.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                            {unassignedTeams.map(team => (
+                                <div
+                                    key={team.id}
+                                    draggable
+                                    onDragStart={(e) => {
+                                        e.dataTransfer.setData('sourceMatchId', 'unassigned');
+                                        e.dataTransfer.setData('sourceTeamId', team.id);
+                                        e.dataTransfer.effectAllowed = 'move';
+                                    }}
+                                    className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-sm text-xs text-white font-mono cursor-grab active:cursor-grabbing hover:bg-white/10 hover:border-[#dc143c]/40 transition-colors flex items-center gap-2"
+                                >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500"></div>
+                                    {team.name}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">All teams have been assigned to matches.</p>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
