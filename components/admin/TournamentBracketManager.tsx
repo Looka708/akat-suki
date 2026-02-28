@@ -10,10 +10,12 @@ const CONNECTOR_WIDTH = 40
 
 export default function TournamentBracketManager({
     matches,
-    tournamentId
+    tournamentId,
+    challongeUrl
 }: {
     matches: any[],
-    tournamentId: string
+    tournamentId: string,
+    challongeUrl?: string | null
 }) {
     const router = useRouter()
     const [updating, setUpdating] = useState<string | null>(null)
@@ -24,6 +26,23 @@ export default function TournamentBracketManager({
     const [expandedMatch, setExpandedMatch] = useState<string | null>(null)
     const [scheduleTimes, setScheduleTimes] = useState<Record<string, string>>({})
     const [seriesFormats, setSeriesFormats] = useState<Record<string, string>>({})
+
+    if (challongeUrl) {
+        return (
+            <div className="bg-white/[0.02] border border-white/10 rounded-sm overflow-hidden h-[800px]">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                    <h2 className="text-sm font-rajdhani font-bold text-[#dc143c] uppercase tracking-[0.2em] flex items-center gap-3">
+                        <span className="w-4 h-1 bg-[#dc143c]"></span>
+                        Challonge Bracket
+                    </h2>
+                    <a href={challongeUrl} target="_blank" rel="noreferrer" className="text-[9px] text-zinc-400 hover:text-white font-mono uppercase tracking-widest transition-colors flex items-center gap-1">
+                        Open in Challonge ↗
+                    </a>
+                </div>
+                <iframe src={`${challongeUrl}/module`} width="100%" height="100%" frameBorder="0" scrolling="auto" allowTransparency={true}></iframe>
+            </div>
+        )
+    }
 
     if (!matches || matches.length === 0) return null
 

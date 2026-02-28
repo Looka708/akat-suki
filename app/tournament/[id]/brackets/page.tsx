@@ -51,6 +51,7 @@ interface Tournament {
     name: string
     game: string
     status: string
+    challonge_url?: string | null
 }
 
 const MATCH_HEIGHT = 80
@@ -243,7 +244,11 @@ export default function BracketsPage() {
                 </div>
 
                 {/* Bracket Display */}
-                {matches.some(m => m.phase === 'upper_bracket' || m.phase === 'lower_bracket') ? (
+                {(tournament as any).challonge_url ? (
+                    <div className="w-full h-[600px] md:h-[800px] rounded-sm overflow-hidden border border-white/10 bg-black">
+                        <iframe src={`${(tournament as any).challonge_url}/module?theme=7681`} width="100%" height="100%" frameBorder="0" scrolling="auto" allowTransparency={true}></iframe>
+                    </div>
+                ) : matches.some(m => m.phase === 'upper_bracket' || m.phase === 'lower_bracket') ? (
                     <DoubleElimBracket matches={matches} teams={teams} />
                 ) : matches.length === 0 ? (
                     <div className="text-center py-32 border border-white/10 bg-white/[0.02] rounded-sm">

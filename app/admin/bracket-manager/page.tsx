@@ -18,7 +18,7 @@ export default async function BracketManagerPage({
     // Fetch all tournaments for the selector
     const { data: tournaments } = await supabaseAdmin
         .from('tournaments')
-        .select('id, name, game, status, max_slots, start_date')
+        .select('id, name, game, status, max_slots, start_date, challonge_url')
         .order('created_at', { ascending: false })
 
     const allTournaments = tournaments || []
@@ -147,7 +147,7 @@ export default async function BracketManagerPage({
                     </div>
 
                     {/* Bracket Manager Component */}
-                    <TournamentBracketManager matches={matches} tournamentId={selected.id} />
+                    <TournamentBracketManager matches={matches} tournamentId={selected.id} challongeUrl={selected.challonge_url} />
                 </>
             ) : (
                 <div className="bg-white/[0.02] border border-white/10 rounded-sm p-12 text-center">

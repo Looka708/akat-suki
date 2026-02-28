@@ -123,7 +123,7 @@ export default async function TournamentManagementPage({ params }: { params: Pro
                 </div>
             </div>
 
-            <TournamentBracketManager matches={matches} tournamentId={tournament.id} />
+            <TournamentBracketManager matches={matches} tournamentId={tournament.id} challongeUrl={tournament.challonge_url} />
         </div>
     )
 }

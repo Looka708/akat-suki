@@ -16,6 +16,7 @@ export interface Tournament {
     status: string
     active_phase: string
     top_twitch_channel: string | null
+    challonge_url?: string | null
     created_at: string
 }
 
@@ -138,6 +139,21 @@ export async function updateTournamentStatus(id: string, status: string) {
 
     if (error) {
         console.error('Error updating tournament status:', error)
+        throw error
+    }
+    return data as Tournament
+}
+
+export async function updateTournamentChallongeUrl(id: string, challongeUrl: string | null) {
+    const { data, error } = await supabaseAdmin
+        .from('tournaments')
+        .update({ challonge_url: challongeUrl })
+        .eq('id', id)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error updating tournament challonge_url:', error)
         throw error
     }
     return data as Tournament
