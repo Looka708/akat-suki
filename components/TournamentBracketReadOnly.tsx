@@ -1,3 +1,8 @@
+import DoubleEliminationSVG from './brackets/DoubleEliminationSVG'
+import RoundRobinView from './brackets/RoundRobinView'
+import SwissView from './brackets/SwissView'
+import CompassDrawSVG from './brackets/CompassDrawSVG'
+
 export default function TournamentBracketReadOnly({ matches, challongeUrl }: { matches: any[], challongeUrl?: string | null }) {
     if (challongeUrl) {
         return (
@@ -15,6 +20,29 @@ export default function TournamentBracketReadOnly({ matches, challongeUrl }: { m
         )
     }
 
+    // Determine bracket mode by analyzing the phases present
+    const isDoubleElimination = matches.some((m: any) => m.phase === 'upper_bracket' || m.phase === 'lower_bracket')
+    const isRoundRobin = matches.some((m: any) => m.phase === 'round_robin')
+    const isSwiss = matches.some((m: any) => m.phase === 'swiss')
+    const isCompassDraw = matches.some((m: any) => m.phase === 'compass_east') // East is the main starter branch
+
+    if (isDoubleElimination) {
+        return <DoubleEliminationSVG matches={matches} />
+    }
+
+    if (isRoundRobin) {
+        return <RoundRobinView matches={matches} />
+    }
+
+    if (isSwiss) {
+        return <SwissView matches={matches} tournamentId={matches[0]?.tournament_id} />
+    }
+
+    if (isCompassDraw) {
+        return <CompassDrawSVG matches={matches} />
+    }
+
+    // Default Single Elimination logic
     // Group matches by round
     const roundsMap = matches.reduce((acc: any, m: any) => {
         if (!acc[m.round]) acc[m.round] = []

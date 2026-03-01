@@ -490,7 +490,7 @@ export async function applyToTournament(teamId: string, tournamentId: string) {
     return data
 }
 
-export async function generateBracket(tournamentId: string, overrideSize?: number) {
+export async function generateBracket(tournamentId: string, overrideSize?: number, format: string = 'single_elimination') {
     // 1. Get tournament info & teams
     const { data: tournament, error: tErr } = await supabaseAdmin.from('tournaments')
         .select('*').eq('id', tournamentId).single()
@@ -521,9 +521,36 @@ export async function generateBracket(tournamentId: string, overrideSize?: numbe
     // 2. Clear existing matches
     await supabaseAdmin.from('tournament_matches').delete().eq('tournament_id', tournamentId)
 
-    // 3. Generate layout
+    // Branch to format specific generator
+    if (format === 'double_elimination') {
+        return generateDoubleEliminationN(tournamentId, teams, bracketSize)
+    }
+
+    if (format === 'round_robin') {
+        return generateRoundRobin(tournamentId, teams)
+    }
+
+    if (format === 'swiss') {
+        return generateSwissRound1(tournamentId, teams)
+    }
+
+    if (format === 'compass') {
+        return generateCompassDraw(tournamentId, teams, bracketSize)
+    }
+
+    // 3. Generate layout (Single Elimination)
     const numRounds = Math.log2(bracketSize)
     const matchesToInsert: any[] = []
+
+    // Pre-generate UUIDs so we can wire next_winner_match_id
+    const matchIds: { [round: number]: string[] } = {}
+    for (let r = 1; r <= numRounds; r++) {
+        matchIds[r] = []
+        const roundCount = bracketSize / Math.pow(2, r)
+        for (let i = 0; i < roundCount; i++) {
+            matchIds[r].push(crypto.randomUUID())
+        }
+    }
 
     // Shuffle teams for initial seeding
     const shuffledTeams = [...teams].sort(() => Math.random() - 0.5)
@@ -536,12 +563,18 @@ export async function generateBracket(tournamentId: string, overrideSize?: numbe
         const team1 = shuffledTeams[i * 2] || null
         const team2 = shuffledTeams[i * 2 + 1] || null
 
+        const nextRoundIndex = Math.floor(i / 2)
+        const nextMatchId = numRounds > 1 ? matchIds[2][nextRoundIndex] : null
+
         matchesToInsert.push({
+            id: matchIds[1][i],
             tournament_id: tournamentId,
             round: 1,
+            phase: 'brackets',
             team1_id: team1 ? team1.id : null,
             team2_id: team2 ? team2.id : null,
             created_at: new Date(baseTime + i * 1000).toISOString(),
+            next_winner_match_id: nextMatchId,
             state: 'pending'
         })
     }
@@ -551,12 +584,18 @@ export async function generateBracket(tournamentId: string, overrideSize?: numbe
         const roundCount = bracketSize / Math.pow(2, r)
         baseTime += 100000 // offset ensuring later rounds sort later if created_at matters globally
         for (let i = 0; i < roundCount; i++) {
+            const nextRoundIndex = Math.floor(i / 2)
+            const nextMatchId = r < numRounds ? matchIds[r + 1][nextRoundIndex] : null
+
             matchesToInsert.push({
+                id: matchIds[r][i],
                 tournament_id: tournamentId,
                 round: r,
+                phase: 'brackets',
                 team1_id: null,
                 team2_id: null,
                 created_at: new Date(baseTime + i * 1000).toISOString(),
+                next_winner_match_id: nextMatchId,
                 state: 'pending'
             })
         }
@@ -579,12 +618,571 @@ export async function generateBracket(tournamentId: string, overrideSize?: numbe
                 const winnerId = m.team1_id || m.team2_id
                 const t1Score = m.team1_id ? 1 : 0
                 const t2Score = m.team2_id ? 1 : 0
+                // Auto advance the bye winner
                 await updateMatchScore(m.id, t1Score, t2Score, winnerId!)
             }
         }
     }
 
     return { numRounds, matchesGenerated: matchesToInsert.length }
+}
+
+async function generateDoubleEliminationN(tournamentId: string, teams: any[], bracketSize: number) {
+    const numUBRounds = Math.log2(bracketSize)
+    const numLBRounds = numUBRounds * 2 - 2
+
+    // Arrays to hold pre-generated UUIDs
+    const ubMatches: { [round: number]: string[] } = {}
+    const lbMatches: { [round: number]: string[] } = {}
+    const gfMatchId = crypto.randomUUID()
+
+    // Pre-generate UB match UUIDs
+    for (let r = 1; r <= numUBRounds; r++) {
+        ubMatches[r] = []
+        const roundCount = bracketSize / Math.pow(2, r)
+        for (let i = 0; i < roundCount; i++) ubMatches[r].push(crypto.randomUUID())
+    }
+
+    // Pre-generate LB match UUIDs
+    for (let r = 1; r <= numLBRounds; r++) {
+        lbMatches[r] = []
+        // LB rounds alternate between cutting the field in half, and receiving drops from UB
+        const roundCount = bracketSize / Math.pow(2, Math.floor((r + 3) / 2))
+        for (let i = 0; i < roundCount; i++) lbMatches[r].push(crypto.randomUUID())
+    }
+
+    const matchesToInsert: any[] = []
+    const shuffledTeams = [...teams].sort(() => Math.random() - 0.5)
+    let baseTime = new Date().getTime()
+
+    // 1. Fill UB Round 1 and create their matches
+    const ubR1Count = bracketSize / 2
+    for (let i = 0; i < ubR1Count; i++) {
+        const team1 = shuffledTeams[i * 2] || null
+        const team2 = shuffledTeams[i * 2 + 1] || null
+
+        const nextUbIndex = Math.floor(i / 2)
+        const nextUbMatchId = numUBRounds > 1 ? ubMatches[2][nextUbIndex] : gfMatchId
+
+        // UB R1 losers drop to LB R1
+        const lbDropIndex = Math.floor(i / 2) // Typically 2 losers drop to 1 LB match
+        const nextLbMatchId = lbMatches[1] ? lbMatches[1][lbDropIndex] : null
+
+        matchesToInsert.push({
+            id: ubMatches[1][i],
+            tournament_id: tournamentId,
+            round: 1,
+            phase: 'upper_bracket',
+            match_format: 'bo1',
+            team1_id: team1 ? team1.id : null,
+            team2_id: team2 ? team2.id : null,
+            created_at: new Date(baseTime + i * 1000).toISOString(),
+            next_winner_match_id: nextUbMatchId,
+            next_loser_match_id: nextLbMatchId,
+            state: 'pending'
+        })
+    }
+
+    // 2. Subsequent UB Rounds
+    for (let r = 2; r <= numUBRounds; r++) {
+        const roundCount = bracketSize / Math.pow(2, r)
+        baseTime += 100000
+        for (let i = 0; i < roundCount; i++) {
+            const nextUbIndex = Math.floor(i / 2)
+            const nextUbMatchId = r < numUBRounds ? ubMatches[r + 1][nextUbIndex] : gfMatchId
+
+            // UB R2+ losers drop to corresponding LB rounds
+            // E.g., UB R2 drops to LB R2 (or R3 depending on exact tracking). For standard:
+            // UB Rn drops to LB 2(n-1)
+            const correspondingLbRound = (r - 1) * 2
+            // The mapping index for LB drops can get complex (cross-matching to avoid playing same team).
+            // For now, straight mapping.
+            const nextLbMatchId = lbMatches[correspondingLbRound] ? lbMatches[correspondingLbRound][i] : null
+
+            matchesToInsert.push({
+                id: ubMatches[r][i],
+                tournament_id: tournamentId,
+                round: r,
+                phase: 'upper_bracket',
+                match_format: r === numUBRounds ? 'bo3' : 'bo1',
+                team1_id: null,
+                team2_id: null,
+                created_at: new Date(baseTime + i * 1000).toISOString(),
+                next_winner_match_id: nextUbMatchId,
+                next_loser_match_id: nextLbMatchId,
+                state: 'pending'
+            })
+        }
+    }
+
+    // 3. Lower Bracket Rounds
+    for (let r = 1; r <= numLBRounds; r++) {
+        const roundCount = bracketSize / Math.pow(2, Math.floor((r + 3) / 2))
+        baseTime += 100000
+        for (let i = 0; i < roundCount; i++) {
+            const nextLbIndex = r % 2 !== 0 ? i : Math.floor(i / 2)
+            const nextLbMatchId = r < numLBRounds ? lbMatches[r + 1][nextLbIndex] : gfMatchId
+
+            matchesToInsert.push({
+                id: lbMatches[r][i],
+                tournament_id: tournamentId,
+                round: r,
+                phase: 'lower_bracket',
+                match_format: r >= numLBRounds - 1 ? 'bo3' : 'bo1',
+                team1_id: null,
+                team2_id: null,
+                created_at: new Date(baseTime + i * 1000).toISOString(),
+                next_winner_match_id: nextLbMatchId,
+                next_loser_match_id: null, // LB losers are out
+                state: 'pending'
+            })
+        }
+    }
+
+    // 4. Grand Finals
+    matchesToInsert.push({
+        id: gfMatchId,
+        tournament_id: tournamentId,
+        round: 1,
+        phase: 'grand_finals',
+        match_format: 'bo5',
+        team1_id: null,
+        team2_id: null,
+        created_at: new Date(baseTime + 100000).toISOString(),
+        next_winner_match_id: null,
+        next_loser_match_id: null,
+        state: 'pending'
+    })
+
+    const { error: insertErr } = await supabaseAdmin.from('tournament_matches').insert(matchesToInsert)
+    if (insertErr) throw new Error('Failed to insert double elimination matches: ' + insertErr.message)
+
+    // Handle byes in UB R1 (Auto advance)
+    const { data: ubR1Matches } = await supabaseAdmin.from('tournament_matches')
+        .select('id, team1_id, team2_id')
+        .eq('tournament_id', tournamentId)
+        .eq('phase', 'upper_bracket')
+        .eq('round', 1)
+
+    if (ubR1Matches) {
+        for (const m of ubR1Matches) {
+            const isBye = (m.team1_id && !m.team2_id) || (!m.team1_id && m.team2_id)
+            if (isBye) {
+                const winnerId = m.team1_id || m.team2_id
+                await updateMatchScore(m.id, m.team1_id ? 1 : 0, m.team2_id ? 1 : 0, winnerId!)
+            }
+        }
+    }
+
+    return { matchesGenerated: matchesToInsert.length }
+}
+
+async function generateRoundRobin(tournamentId: string, teams: any[]) {
+    if (!teams || teams.length < 2) {
+        throw new Error('At least 2 teams are required for a Round Robin format.')
+    }
+
+    // 1. Clear existing brackets/groups
+    await supabaseAdmin.from('tournament_matches').delete().eq('tournament_id', tournamentId)
+    await supabaseAdmin.from('tournament_teams').update({ group_id: null }).eq('tournament_id', tournamentId)
+
+    // 2. Setup a global single group
+    const { data: group, error: groupErr } = await supabaseAdmin.from('tournament_groups').insert({
+        tournament_id: tournamentId,
+        name: 'Global Round Robin'
+    }).select().single()
+
+    if (groupErr || !group) throw new Error('Failed to create Round Robin group: ' + groupErr?.message)
+
+    // Assign all teams to the single global group
+    for (const team of teams) {
+        await supabaseAdmin.from('tournament_teams')
+            .update({ group_id: group.id })
+            .eq('id', team.id)
+    }
+
+    const matchesToInsert: any[] = []
+    let baseTime = new Date().getTime()
+
+    // 3. Generate Round Robin Pairings (Circle Method)
+    const n = teams.length
+    // If odd number of teams, add a dummy 'bye' team
+    const teamsList = n % 2 !== 0 ? [...teams, { id: null, dummy: true }] : [...teams]
+    const totalRounds = teamsList.length - 1
+    const matchesPerRound = teamsList.length / 2
+
+    for (let round = 1; round <= totalRounds; round++) {
+        for (let match = 0; match < matchesPerRound; match++) {
+            const home = teamsList[match]
+            const away = teamsList[teamsList.length - 1 - match]
+
+            // If neither is the dummy team, schedule the match
+            if (home.id !== null && away.id !== null) {
+                matchesToInsert.push({
+                    tournament_id: tournamentId,
+                    group_id: group.id,
+                    round: round,
+                    phase: 'round_robin', // Explicit phase identifier
+                    match_format: 'bo1',
+                    team1_id: home.id,
+                    team2_id: away.id,
+                    created_at: new Date(baseTime).toISOString(),
+                    state: 'pending'
+                })
+                baseTime += 1000 // stagger creations slightly
+            }
+        }
+
+        // Rotate the array for the next round (keep first element fixed)
+        const last = teamsList.pop()!
+        teamsList.splice(1, 0, last)
+
+        baseTime += 100000 // distinct chronological gaps between rounds
+    }
+
+    const { error: insertErr } = await supabaseAdmin.from('tournament_matches').insert(matchesToInsert)
+    if (insertErr) throw new Error('Failed to insert round robin matches: ' + insertErr.message)
+
+    return { numRounds: totalRounds, matchesGenerated: matchesToInsert.length }
+}
+
+async function generateSwissRound1(tournamentId: string, teams: any[]) {
+    if (!teams || teams.length < 2) {
+        throw new Error('At least 2 teams are required for a Swiss format.')
+    }
+
+    // 1. Clear existing brackets/groups
+    await supabaseAdmin.from('tournament_matches').delete().eq('tournament_id', tournamentId)
+    await supabaseAdmin.from('tournament_teams').update({ group_id: null }).eq('tournament_id', tournamentId)
+
+    // 2. Determine Swiss Rounds (typically log2(teams) rounded up, but can be manual)
+    const totalRounds = Math.ceil(Math.log2(teams.length))
+
+    // We only generate Round 1 initially. Subsequent rounds are generated on demand.
+    const shuffledTeams = [...teams].sort(() => Math.random() - 0.5)
+
+    // If odd, one team gets a bye
+    const hasBye = shuffledTeams.length % 2 !== 0
+    if (hasBye) {
+        shuffledTeams.push({ id: null, dummy: true })
+    }
+
+    const matchesToInsert: any[] = []
+    let baseTime = new Date().getTime()
+
+    for (let i = 0; i < shuffledTeams.length; i += 2) {
+        const team1 = shuffledTeams[i]
+        const team2 = shuffledTeams[i + 1]
+
+        // Byes are auto-wins, denoted by null ID
+        matchesToInsert.push({
+            tournament_id: tournamentId,
+            round: 1,
+            phase: 'swiss',
+            match_format: 'bo1',
+            team1_id: team1.id,
+            team2_id: team2.id,
+            created_at: new Date(baseTime + i * 1000).toISOString(),
+            state: 'pending'
+        })
+    }
+
+    const { error: insertErr } = await supabaseAdmin.from('tournament_matches').insert(matchesToInsert)
+    if (insertErr) throw new Error('Failed to insert swiss matches: ' + insertErr.message)
+
+    // Auto-advance byes
+    const { data: round1Matches } = await supabaseAdmin.from('tournament_matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('phase', 'swiss')
+        .eq('round', 1)
+
+    if (round1Matches) {
+        for (const m of round1Matches) {
+            const isBye = (m.team1_id && !m.team2_id) || (!m.team1_id && m.team2_id)
+            if (isBye) {
+                const winnerId = m.team1_id || m.team2_id
+                await updateMatchScore(m.id, m.team1_id ? 1 : 0, m.team2_id ? 1 : 0, winnerId!)
+            }
+        }
+    }
+
+    return { numRounds: totalRounds, matchesGenerated: matchesToInsert.length }
+}
+
+export async function generateNextSwissRound(tournamentId: string) {
+    // 1. Fetch all matches in Swiss phase
+    const { data: matches } = await supabaseAdmin.from('tournament_matches')
+        .select('*, team1:tournament_teams!tournament_matches_team1_id_fkey(*), team2:tournament_teams!tournament_matches_team2_id_fkey(*)')
+        .eq('tournament_id', tournamentId)
+        .eq('phase', 'swiss')
+
+    if (!matches || matches.length === 0) throw new Error('No Swiss rounds initialized.')
+
+    // Validate current round is fully complete
+    const currentRound = Math.max(...matches.map(m => m.round))
+    const currentRoundMatches = matches.filter(m => m.round === currentRound)
+    const incomplete = currentRoundMatches.some(m => m.state !== 'completed')
+
+    if (incomplete) throw new Error('Not all matches in the current round are completed.')
+
+    // 2. Calculate standings (pts/wins)
+    const standings: Record<string, { id: string, points: number, diff: number, played: string[] }> = {}
+
+    // Initialize teams list based on unique IDs appearing in match history
+    matches.forEach(m => {
+        if (m.team1_id && !standings[m.team1_id]) standings[m.team1_id] = { id: m.team1_id, points: 0, diff: 0, played: [] }
+        if (m.team2_id && !standings[m.team2_id]) standings[m.team2_id] = { id: m.team2_id, points: 0, diff: 0, played: [] }
+    })
+
+    // Tally points and diffs
+    matches.forEach(m => {
+        if (m.team1_id && m.team2_id) {
+            standings[m.team1_id].played.push(m.team2_id)
+            standings[m.team2_id].played.push(m.team1_id)
+        }
+
+        if (m.winner_id) {
+            standings[m.winner_id].points += 3
+        }
+
+        if (m.team1_id) standings[m.team1_id].diff += (m.team1_score || 0) - (m.team2_score || 0)
+        if (m.team2_id) standings[m.team2_id].diff += (m.team2_score || 0) - (m.team1_score || 0)
+    })
+
+    // Sort by points, then diff
+    const rankedTeams = Object.values(standings).sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points
+        return b.diff - a.diff
+    })
+
+    // 3. Dynamic Pairing (Greedy approach for simplified Swiss)
+    const nextRound = currentRound + 1
+    const unassigned = [...rankedTeams]
+    const pairings: Array<[string, string | null]> = []
+
+    // If odd number of real teams, bottom-most gets bye
+    if (unassigned.length % 2 !== 0) {
+        const bottom = unassigned.pop()!
+        pairings.push([bottom.id, null])
+    }
+
+    while (unassigned.length > 0) {
+        const current = unassigned.shift()!
+
+        // Find highest ranked opponent they haven't played
+        let opIndex = unassigned.findIndex(t => !current.played.includes(t.id))
+
+        // Fallback: If everyone played everyone (rare in 1st half of swiss), just play highest unassigned
+        if (opIndex === -1) opIndex = 0
+
+        const opponent = unassigned.splice(opIndex, 1)[0]
+        pairings.push([current.id, opponent.id])
+    }
+
+    // 4. Create Matches
+    const matchesToInsert: any[] = []
+    let baseTime = new Date().getTime()
+
+    pairings.forEach((pair, idx) => {
+        matchesToInsert.push({
+            tournament_id: tournamentId,
+            round: nextRound,
+            phase: 'swiss',
+            match_format: 'bo1',
+            team1_id: pair[0],
+            team2_id: pair[1],
+            created_at: new Date(baseTime + idx * 1000).toISOString(),
+            state: 'pending'
+        })
+    })
+
+    const { error: insertErr } = await supabaseAdmin.from('tournament_matches').insert(matchesToInsert)
+    if (insertErr) throw new Error('Failed to insert next Swiss round matches: ' + insertErr.message)
+
+    // Auto-advance byes
+    const { data: newMatches } = await supabaseAdmin.from('tournament_matches')
+        .select('id, team1_id, team2_id')
+        .eq('tournament_id', tournamentId)
+        .eq('phase', 'swiss')
+        .eq('round', nextRound)
+
+    if (newMatches) {
+        for (const m of newMatches) {
+            const isBye = (m.team1_id && !m.team2_id) || (!m.team1_id && m.team2_id)
+            if (isBye) {
+                const winnerId = m.team1_id || m.team2_id
+                await updateMatchScore(m.id, m.team1_id ? 1 : 0, m.team2_id ? 1 : 0, winnerId!)
+            }
+        }
+    }
+
+    return { numRounds: nextRound, matchesGenerated: matchesToInsert.length }
+}
+
+async function generateCompassDraw(tournamentId: string, teams: any[], bracketSize: number) {
+    if (bracketSize < 8) {
+        throw new Error('Compass Draw requires at least an 8-team bracket.')
+    }
+
+    const matchesToInsert: any[] = []
+    let baseTime = new Date().getTime()
+
+    // 1. Clear existing
+    await supabaseAdmin.from('tournament_matches').delete().eq('tournament_id', tournamentId)
+
+    // Pre-generate UUID maps for directions
+    // standard 8-team compass: East (winners), West (1st round losers), North (East R1 losers), South (West R1 losers)
+    const directions = ['east', 'west', 'north', 'south']
+    const matchIds: Record<string, { [round: number]: string[] }> = {}
+
+    // Determine sizes (simplified to an 8-team subset map)
+    directions.forEach(dir => {
+        matchIds[dir] = {}
+        const dirSize = dir === 'east' ? bracketSize : bracketSize / 2
+        const numRounds = Math.log2(dirSize)
+        for (let r = 1; r <= numRounds; r++) {
+            matchIds[dir][r] = []
+            const roundCount = dirSize / Math.pow(2, r)
+            for (let i = 0; i < roundCount; i++) matchIds[dir][r].push(crypto.randomUUID())
+        }
+    })
+
+    const shuffledTeams = [...teams].sort(() => Math.random() - 0.5)
+
+    // 2. East Bracket (Main Winners Bracket) Round 1
+    const eastR1Count = bracketSize / 2
+    for (let i = 0; i < eastR1Count; i++) {
+        const team1 = shuffledTeams[i * 2] || null
+        const team2 = shuffledTeams[i * 2 + 1] || null
+
+        const nextWinnerId = matchIds['east'][2] ? matchIds['east'][2][Math.floor(i / 2)] : null
+        const nextLoserId = matchIds['west'][1] ? matchIds['west'][1][Math.floor(i / 2)] : null
+
+        matchesToInsert.push({
+            id: matchIds['east'][1][i],
+            tournament_id: tournamentId,
+            round: 1,
+            phase: 'compass_east',
+            match_format: 'bo1',
+            team1_id: team1 ? team1.id : null,
+            team2_id: team2 ? team2.id : null,
+            created_at: new Date(baseTime + i * 1000).toISOString(),
+            next_winner_match_id: nextWinnerId,
+            next_loser_match_id: nextLoserId,
+            state: 'pending'
+        })
+    }
+
+    // 3. East Bracket Subsequent Rounds (and their drops)
+    const numEastRounds = Math.log2(bracketSize)
+    for (let r = 2; r <= numEastRounds; r++) {
+        const roundCount = bracketSize / Math.pow(2, r)
+        baseTime += 100000
+        for (let i = 0; i < roundCount; i++) {
+            const nextWinnerId = r < numEastRounds ? matchIds['east'][r + 1][Math.floor(i / 2)] : null
+
+            // East R2 losers drop to North R1
+            const nextLoserId = r === 2 && matchIds['north'][1] ? matchIds['north'][1][Math.floor(i / 2)] : null
+
+            matchesToInsert.push({
+                id: matchIds['east'][r][i],
+                tournament_id: tournamentId,
+                round: r,
+                phase: 'compass_east',
+                match_format: 'bo1',
+                team1_id: null,
+                team2_id: null,
+                created_at: new Date(baseTime + i * 1000).toISOString(),
+                next_winner_match_id: nextWinnerId,
+                next_loser_match_id: nextLoserId,
+                state: 'pending'
+            })
+        }
+    }
+
+    // 4. West Bracket (Losers from East R1)
+    const numWestRounds = Math.log2(bracketSize / 2)
+    for (let r = 1; r <= numWestRounds; r++) {
+        const roundCount = (bracketSize / 2) / Math.pow(2, r)
+        baseTime += 100000
+        for (let i = 0; i < roundCount; i++) {
+            const nextWinnerId = r < numWestRounds ? matchIds['west'][r + 1][Math.floor(i / 2)] : null
+            // West R1 losers drop to South R1
+            const nextLoserId = r === 1 && matchIds['south'][1] ? matchIds['south'][1][Math.floor(i / 2)] : null
+
+            matchesToInsert.push({
+                id: matchIds['west'][r][i],
+                tournament_id: tournamentId,
+                round: r,
+                phase: 'compass_west',
+                match_format: 'bo1',
+                team1_id: null,
+                team2_id: null,
+                created_at: new Date(baseTime + i * 1000).toISOString(),
+                next_winner_match_id: nextWinnerId,
+                next_loser_match_id: nextLoserId,
+                state: 'pending'
+            })
+        }
+    }
+
+    // 5. North Bracket (Losers from East R2)
+    const numNorthRounds = Math.log2(bracketSize / 4)
+    if (numNorthRounds >= 1) {
+        for (let r = 1; r <= numNorthRounds; r++) {
+            const roundCount = (bracketSize / 4) / Math.pow(2, r)
+            baseTime += 100000
+            for (let i = 0; i < roundCount; i++) {
+                const nextWinnerId = r < numNorthRounds ? matchIds['north'][r + 1][Math.floor(i / 2)] : null
+
+                matchesToInsert.push({
+                    id: matchIds['north'][r][i],
+                    tournament_id: tournamentId,
+                    round: r,
+                    phase: 'compass_north',
+                    match_format: 'bo1',
+                    team1_id: null,
+                    team2_id: null,
+                    created_at: new Date(baseTime + i * 1000).toISOString(),
+                    next_winner_match_id: nextWinnerId,
+                    next_loser_match_id: null,
+                    state: 'pending'
+                })
+            }
+        }
+    }
+
+    // 6. South Bracket (Losers from West R1)
+    const numSouthRounds = Math.log2(bracketSize / 4)
+    if (numSouthRounds >= 1) {
+        for (let r = 1; r <= numSouthRounds; r++) {
+            const roundCount = (bracketSize / 4) / Math.pow(2, r)
+            baseTime += 100000
+            for (let i = 0; i < roundCount; i++) {
+                const nextWinnerId = r < numSouthRounds ? matchIds['south'][r + 1][Math.floor(i / 2)] : null
+
+                matchesToInsert.push({
+                    id: matchIds['south'][r][i],
+                    tournament_id: tournamentId,
+                    round: r,
+                    phase: 'compass_south',
+                    match_format: 'bo1',
+                    team1_id: null,
+                    team2_id: null,
+                    created_at: new Date(baseTime + i * 1000).toISOString(),
+                    next_winner_match_id: nextWinnerId,
+                    next_loser_match_id: null,
+                    state: 'pending'
+                })
+            }
+        }
+    }
+
+    const { error: insertErr } = await supabaseAdmin.from('tournament_matches').insert(matchesToInsert)
+    if (insertErr) throw new Error('Failed to insert compass matches: ' + insertErr.message)
+
+    return { matchesGenerated: matchesToInsert.length }
 }
 
 export async function generateGroupStage(tournamentId: string, options: { groupsCount: number; boFormat?: string }) {
